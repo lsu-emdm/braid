@@ -1,153 +1,112 @@
 <!doctype html>
 <html>
-	<head>
+<head>
 
-	  	<title>BRAID: Web Audio Instruments</title>
+  	<title>BRAID: Web Audio Instruments</title>
 
-		<!-- standard includes of nexusUI and jquery-->
-		<link rel="shortcut icon" href="info/images/favicon.png" type="image/png" />
-		<script type="text/javascript" src="libraries/jquery.js"></script>
-		<script type="text/javascript" src="libraries/jquery-ui-1.8.2.custom.min.js"></script>
-		<script type="text/javascript" src="libraries/gibber.lib.js"></script>
-		<script type="text/javascript" src="libraries/nexusUI.js"></script>
-		<script type="text/javascript" src="libraries/FileSaver.js"></script>
-		<script type="text/javascript" src="libraries/qrcode.min.js"></script>
-
-
-		<!-- Make mobile display non-scalable and fitting the viewport window -->
-		<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no, minimal-ui" />
-		<meta name="apple-mobile-web-app-capable" content="yes" />
-  		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+	<!-- standard includes of nexusUI and jquery-->
+	<link rel="shortcut icon" href="info/images/favicon.png" type="image/png" />
+	<script type="text/javascript" src="libraries/jquery.js"></script>
+	<script type="text/javascript" src="libraries/jquery-ui-1.8.2.custom.min.js"></script>
+	<script type="text/javascript" src="libraries/gibber.lib.js"></script>
+	<script type="text/javascript" src="libraries/nexusUI.js"></script>
+	<script type="text/javascript" src="libraries/FileSaver.js"></script>
+	<script type="text/javascript" src="libraries/qrcode.min.js"></script>
 
 
-		<script>
-
-		 // init web audio
-		 	window.AudioContext = window.AudioContext || window.webkitAudioContext;
-    		var c = new window.AudioContext();
+	<script src="libraries/codemirror.js"></script>
+	<link rel="stylesheet" href="libraries/codemirror.css">
+	<script src="libraries/mode/javascript/javascript.js"></script>
 
 
-			// Setup all of the UI objects you want to use.
-			// This occurs after the page has loaded all of the canvas objects to draw into.
-			
-			var globaldragid = false;
-			var uicolor = "#0af";
-			var freshpage = true;
-			var pageName = "bleepbloop";
-			var loadInPerformance = false;
-			var canvasgridx = 5;
-			var canvasgridy = 5;
+	<!-- Make mobile display non-scalable and fitting the viewport window -->
+	<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no, minimal-ui" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
 
-			nx.onload = function() {
 
-				nx.highlightEditedObj = function() {
-				 	$("canvas").css("border", "solid 1px #ccc");
-				  	$("canvas").css("z-index", 1);
-				  	$("#"+globaldragid).css("border", "solid 1px "+nx.colors.accent);
-				  	$("#"+globaldragid).css("z-index", 2);
+	<script>
+
+	 // init web audio
+	 	window.AudioContext = window.AudioContext || window.webkitAudioContext;
+		var c = new window.AudioContext();
+
+
+		// Setup all of the UI objects you want to use.
+		// This occurs after the page has loaded all of the canvas objects to draw into.
+		
+		var globaldragid = false;
+		var uicolor = "#0af";
+		var freshpage = true;
+		var pageName = "bleepbloop";
+		var loadInPerformance = false;
+		var canvasgridx = 5;
+		var canvasgridy = 5;
+
+
+		nx.onload = function() {
+
+			nx.highlightEditedObj = function() {
+			 	$("canvas").css("border", "solid 1px #ccc");
+			  	$("canvas").css("z-index", 1);
+			  	$("#"+globaldragid).css("border", "solid 1px "+nx.colors.accent);
+			  	$("#"+globaldragid).css("z-index", 2);
+			}
+
+			nx.WAenv = true;
+			if (freshpage) {
+				nx.colorize(uicolor);
+			}
+			nx.sendsTo("js");
+			nx.showLabels = false;
+
+			if (!nx.audioStrings) {
+				nx.audioStrings = new Object();
+				nx.globalAudioString = "";
+				newPage(true);
+			}
+
+			nx.editOn = function() {
+				nx.editmode = true;
+			  	$("canvas").css("border", "solid 1px #ccc");
+			  	$("body").css("background", "#eee");
+			    $("#locked").attr("src","images/unlocked.png");
+			    $("#sidebar").animate({"right": "0px"}, 400);
+			    if (IDEon) {
+			   		showIDE();
+			    }
+			}
+
+			nx.editOff = function() {
+				hideHighlight();
+			  	nx.editmode = false;
+			  	document.body.style.cursor = "pointer";
+			  	$("canvas").css("border", "none");
+			  	$("body").css("background", "#fff");
+			    $("#locked").attr("src","images/locked.png");
+			    $("#sidebar").animate({"right": "-165px"}, 400);
+			    hideIDE();
+			}
+
+			if (freshpage) {
+				if (window.location.search) {
+					loadInPerformance = true;
+					var uiname = location.search;
+					uiname = uiname.slice(1);
+					searchDB(uiname)
+					setTimeout("nx.editOff();", 500);
+				} else {
+					setTimeout('recallUILocally("lastnxstate")',100)
+					nx.editOn();
 				}
-
-				nx.WAenv = true;
-				if (freshpage) {
-					nx.colorize(uicolor);
-				}
-				nx.sendsTo("js");
-				nx.showLabels = false;
-
-				if (!nx.audioStrings) {
-					nx.audioStrings = new Object();
-					nx.globalAudioString = "";
-					newPage(true);
-				}
-
-				nx.editOn = function() {
-					nx.editmode = true;
-				  	$("canvas").css("border", "solid 1px #ccc");
-				  	$("body").css("background", "#eee");
-				    $("#locked").attr("src","images/unlocked.png");
-				    $("#sidebar").animate({"right": "0px"}, 400);
-				    if (IDEon) {
-				   		showIDE();
-				    }
-				}
-
-				nx.editOff = function() {
-					hideHighlight();
-				  	nx.editmode = false;
-				  	document.body.style.cursor = "pointer";
-				  	$("canvas").css("border", "none");
-				  	$("body").css("background", "#fff");
-				    $("#locked").attr("src","images/locked.png");
-				    $("#sidebar").animate({"right": "-165px"}, 400);
-				    hideIDE();
-				}
-
-
-				nx.startPulse();
-
-
-				if (freshpage) {
-					if (window.location.search) {
-						loadInPerformance = true;
-						var uiname = location.search;
-						uiname = uiname.slice(1);
-						searchDB(uiname)
-						setTimeout("nx.editOff();", 500);
-					} else {
-						setTimeout('recallUILocally("lastnxstate")',100)
-						nx.editOn();
-					}
-					freshpage = false;
-				}
+				freshpage = false;
 				
-			}
-
-			function createObject(data,mousey) {
-
-					console.log(data)
-
-					// if it has an nx attribute, store that in nxId
-					var nxId = data;
-					
-					if(nxId) {
-
-						var widget = nx.add(nxId, {
-							x: 165,
-							y: mousey,
-							parent: 'nxui' 
-						})
-						globaldragid = widget.canvasID;
-						var thisname = widget.canvasID;
-						window[widget.canvasID] = widget;
-						showSettings();
-
-					}
-					nx.onload();
-					document.addEventListener("mousemove", dragobj, true);
-					$("#"+thisname).mousemove(function(e) {
-						if (nx.editmode && e.pageX>(parseInt(($(this).width()-10))+parseInt($(this).css("left").replace("px",""))) && e.pageY>(parseInt(($(this).height()-10))+parseInt($(this).css("top").replace("px","")))) {
-							this.style.cursor = "se-resize"
-						} else {
-							this.style.cursor = "pointer"
-						}
-					}) 
-				  	nx.highlightEditedObj();
-				  	nx.audioStrings[thisname] = ""
-				  	nx.audioFunctions[thisname] = new Function();
-			}
-
-
-			$(document).ready(function() {
-
-	 			Gibber.init();
-
 
 				$(document).mousedown(function(e) {
-					console.log("body")
-					if (e.srcElement != $("div.ace_content")[0] && e.srcElement != $("div.ace_content")[1]) {
+					console.log(e.srcElement);
+					if (e.srcElement != $("div.ace_editor")[0] && e.srcElement != $("div.ace_editor")[1]) {
 						hideElementCallbackCode();
 					}
-
 
 					if (e.srcElement == $("#nxui")[0]) {
 						hideHighlight();
@@ -176,11 +135,7 @@
 					nx.editOff();
 				});
 
-				$("#highlight").draggable({
-					drag: function(event, ui) {
-						massMove(ui);
-					}
-				});
+				$("#highlight").draggable();
 
 
 				/*
@@ -190,1366 +145,1410 @@
 				        alert('meta key yo!');
 				    }
 				}); */
-
-			})
-
-			highlighting = false;
-			var hlaxis = new Object();
-
-			function startHighlighting(e) {
-
-				hlaxis = {
-					left: e.clientX,
-					top: e.clientY
-				}
-
-				highlighting = true;
-				$("#highlight").css("opacity","0.2");
-				$("#highlight").show(0);
-				$("#highlight").css("left", e.clientX);
-				$("#highlight").css("top", e.clientY);
-				$("#highlight").css("width", 0);
-				$("#highlight").css("height", 0);
-
-				$("body").css("user-select", "none");
-				$("body").css("-moz-user-select", "none");
-				$("body").css("-webkit-user-select", "none");
-			} 
-			function setHighlight(e) {
-				if (highlighting) {
-					if (e.clientX > hlaxis.left) {
-						$("#highlight").css("width", e.clientX-parseInt($("#highlight").css("left")));
-					} else if (e.clientX <= hlaxis.left ) {
-						$("#highlight").css("width", hlaxis.left - e.clientX + "px");
-						$("#highlight").css("left", e.clientX);
-					}
-
-					if (e.clientY > hlaxis.top) {
-						$("#highlight").css("height", e.clientY-parseInt($("#highlight").css("top")));
-					} else if (e.clientY <= hlaxis.top ) {
-						$("#highlight").css("height", hlaxis.top - e.clientY + "px");
-						$("#highlight").css("top", e.clientY);
-
-					}
-					
-					
-				}
-			}
-			function stopHighlighting(e) {
-			//	$("#highlight").hide(0);
-				highlighting = false;
-				$("#highlight").css("opacity","0.1");
-				massHighlight();
-			} 
-			function hideHighlight(e) {
-				$("#highlight").hide(0);
-				unhighlightAll();
 			}
 
-			var highlightList = new Array();
-			var hldata = new Array();
-
-			function massHighlight() {
-				var hlDim = {
-					left: parseInt($("#highlight").css("left")),
-					top: parseInt($("#highlight").css("top")),
-					width: parseInt($("#highlight").css("width")),
-					height: parseInt($("#highlight").css("height"))
-				}
-				for (var i=0;i<nx.widgets.length;i++) {
-					var widg = nx.widgets[i];
-					if ( widg.offset.left>=hlDim.left && widg.offset.top>=hlDim.top && widg.offset.left+widg.width<=hlDim.left+hlDim.width && widg.offset.top+widg.height<=hlDim.top + hlDim.height) {
-						widg.hlstart = {
-							left: widg.offset.left,
-							top: widg.offset.top
-						}
-						highlightList.push(widg)
-
-					}
-				}
-			}
-
-			function unhighlightAll() {
-				highlightList = new Array();
-				//$("canvas").css("border", "solid 1px #ccc");
-			}
-
-			function massMove(e) {
-
-				var hlshift = {
-					left: e.position.left - e.originalPosition.left,
-					top: e.position.top - e.originalPosition.top
-				}
-
-				for (var i=0;i<highlightList.length;i++) {
-					var widg = highlightList[i];
-					widg.canvas.style.left = widg.hlstart.left + hlshift.left + "px";
-					widg.canvas.style.top = widg.hlstart.top + hlshift.top + "px";
-					widg.offset = new nx.canvasOffset(nx.findPosition(widg.canvas).left,nx.findPosition(widg.canvas).top);
-				}
-
-			}
-
-			function dragobj(e) {
-				window[globaldragid].isBeingDragged = true;
-				window[globaldragid].preMove(e);
 			
-			}
+		}
 
 
+		function createObject(data,mousey,mousex) {
 
-			function showSettings() {
-				$("#oscpath").attr("value", eval(globaldragid+".oscName"));
-			}
-
-			function deleteObject() {
-				window[globaldragid].destroy();
-			}
-
-			function setoscname(val) {
-				eval(globaldragid+".oscName = '"+val+"';");
-				eval(globaldragid+".draw()");
-			}
-
-			function changeip(val) {
-				nx.oscIp = val;
-			}
-
-			function blockMove(e) {
-	       		e.preventDefault();
-			}
-
-			function setcursor(e) {
-			}
-			
-			function saveUI() {
-
-			 	var html = '<!doctype html>\n'
-		    	+ '<html>   \n'
-				+ '<head>   \n'
-				+ '<title>NexusDrop</title>\n' 
-				+ '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n'
-				+ '<meta name="viewport" content="initial-scale=0.5, user-scalable=no"/>\n'
-				+ '<script type="text/javascript" src="jquery.js"><\/script>\n'
-				+ '<script type="text/javascript" src="nexusUI.js"><\/script>\n'
-				+ '</head>\n'                
-				+ '<body>\n'                
-				+ '<script>\n'
-				+ 'nx.onload = function() {\n'
-				+ '	nx.colorize("'+uicolor+'");\n'
-				+ '	nx.sendsTo("ajax");\n'
-				+ '	nx.usesScript("nexusOSCRelay.php");\n'
-				+ '}\n'
-				+ '<\/script>\n';
-
-				for (var i=0;i<nx.widgets.length;i++) {
-					var thisobj = document.getElementById(nx.widgets[i].canvasID);
-					var thisosc = nx.widgets[i].oscName;
-					thisosc = thisosc.replace("/","")
-					html += '<canvas id="'+thisosc+'" nx="'+thisobj.getAttribute("nx")+'" style="position:absolute;top:'+thisobj.style.top+';left:'+thisobj.style.left+';height:'+nx.widgets[i].height+'px;width:'+nx.widgets[i].width+'px"></canvas>\n'
-				}
-
-				html += '</body>\n'
-				+ '</html>\n';
-	
-	
-				var blob = new Blob([html], {type: "text/html;charset=utf-8"});
-				saveAs(blob, "nexusdrop.html");
+				// if it has an nx attribute, store that in nxId
+				var nxId = data;
 				
-			}
+				if(nxId) {
 
+					var widget = nx.add(nxId, {
+						x: mousex-25,
+						y: mousey-25,
+						parent: 'nxui' 
+					})
+					globaldragid = widget.canvasID;
+					var thisname = widget.canvasID;
+					window[widget.canvasID] = widget;
+					showSettings();
+					console.log(widget.canvasID)
 
-
-			// mobile specific stuff
-
-			function perform() {
-				if (!nx.editmode) {
-					//turn editing on
-					$("#perfbutt").html("unlocked")
-				//	$("#perfbutt").css("background-color","#ddd")
-					$("#addbutt").show(0);
-					$("#editbutt").show(0);
-					nx.editOn();
-				//	nx.setLabels("on")
-				} else {
-					$("#perfbutt").html("locked")
-					$("#addbutt").hide(0);
-					$("#editbutt").hide(0);
-				//	$("#perfbutt").css("background-color","#9df")
-					nx.editOff();
-				//	nx.setLabels("off")
-				}
-
-			}
-
-			function storeUI(uiname) {
-				localStorage[uiname] = makeUIjson();
-			//	findUIs();
-
-			}
-
-			function makeUIjson() {
-				var jsonui = {
-					"globalAudio": nx.globalAudioString,
-					"elements": new Array(),
-					"settings": {
-						"colors": nx.colors,
-						"votes": 0,
-						"timestamp": new Date()
-					}
-				}
-
-				for (var i=0;i<nx.widgets.length;i++) {
-
-					var objsettings = nx.widgets[i].settings ? nx.widgets[i].settings : "";
-					
-					jsonui.elements[i] = {
-						type: nx.widgets[i].getName(),
-						canvasID: nx.widgets[i].canvasID,
-						oscName: nx.widgets[i].oscName,
-						width: nx.widgets[i].width,
-						height: nx.widgets[i].height,
-						"top": nx.widgets[i].offset.top,
-						"left": nx.widgets[i].offset.left,
-						"audioString": nx.audioStrings[nx.widgets[i].canvasID],
-						"settings": objsettings
-					}
-				}
-				return JSON.stringify(jsonui);
-			}
-
-
-
-			function recallUILocally(uiname) {
-			//	if (JSON.parse(uijson)localStorage[uiname]) {
-			//		console.log(localStorage[uiname])
-					if (localStorage[uiname]!=undefined) {
-						buildUIfromJSON(localStorage[uiname])
-					}
-					
-			//	}
-			}
-
-			function buildUIfromJSON(uijson) {
-
-				var nxui = JSON.parse(uijson)
-
-				$("#nxui").html("");
-				nx.widgets = new Object();
-				nx.elemTypeArr = new Array();
-
-				// audio
-
-				//check for global audio property
-				if (nxui.globalAudio) {
-					nx.globalAudioString = nxui.globalAudio;
-				} else {
-					nx.globalAudioString = defaultglobalaudio;
-				}
-				showGlobalAudioCode();
-
-				if (nxui.settings) {
-					renderSettings(nxui.settings);
-				}
-				
-
-				//check for elements property, and overwrite nxui with just the elements
-				if (nxui.elements) {
-					nxui = nxui.elements;
-				}
-				//otherwise assume list is only elements
-
-				for (var i=0;i<nxui.length;i++) {
-
-					// if it has an nx attribute, store that in nxId
-					var nxId = nxui[i].type;
-					var elemCount = 0;
-					for (j=0;j<nx.elemTypeArr.length;j++) {
-						if (nx.elemTypeArr[j]==nxui[i].type) {
-							elemCount++;
-						}
-					}
-					// add your new nexus element type to the element list
-					nx.elemTypeArr.push(nxId);
-					var idNum = elemCount + 1;
-					var thisname = nxui[i].canvasID;
-					thisname = thisname.replace("/","");
-					if(nxId) {
-
-						console.log(thisname)
-
-						nx.add(nxId, {
-							x: nxui[i].left,
-							y: nxui[i].top,
-							w: nxui[i].width,
-							h: nxui[i].height,
-							name: thisname,
-							parent: 'nxui' 
-						})
-
-						nx.widgets[thisname].oscName = nxui[i].oscName;
-						globaldragid = thisname;
-						$("#"+thisname).mousemove(function(e) {
-							if (nx.editmode && e.pageX>(parseInt(($(this).width()-20))+parseInt($(this).css("left").replace("px",""))) && e.pageY>(parseInt(($(this).height()-20))+parseInt($(this).css("top").replace("px","")))) {
-								this.style.cursor = "se-resize";
-							} else {
-								this.style.cursor = "pointer";
-							}
-						}) 
-						nx.audioStrings[thisname] = nxui[i].audioString;
-						nx.audioFunctions[thisname] = new Function("data", nxui[i].audioString);
-					}
 				}
 				nx.onload();
-				showSettings();
-				$("#edit").hide(0);
-				$("canvas").css("border", "solid 1px #ccc");
-
-				if (loadInPerformance) {
-					updateGlobalAudio();
-					loadInPerformance = false;
-				}
-			}
-
-			function renderSettings(settings) {
-				if (settings.colors) {
-					nx.colors = settings.colors;
-				}
-			}
-
-
-
-			function changeColor(newcolor) {
-				uicolor = newcolor;
-				nx.colorize(newcolor);
-			}
-
-
-
-
-			/**** COMMUNICATE WITH DB ****/
-
-
-			function askToSaveToDB() {
-				var uiname = prompt("Please name your interface", pageName);
-				var overwriting = false;
-				if (uiname) {
-
-					for (var i=0;i<UIDB.length;i++) {
-		        		if (UIDB[i].name) {
-			        		if (UIDB[i].name.toLowerCase() == uiname.toLowerCase()) {
-			           			currentUI = UIDB[i];
-			           			overwriting = true;
-			           			break;
-			           		}
-			           	}
-		        	}
-
-		        	if (overwriting) {
-
-						var confirmoverwrite = confirm("Are you sure you want to overwrite the interface:" + currentUI.name);
-
-			        	if (!confirmoverwrite) { return }
-
-						updateToDB(uiname)
-
+				document.addEventListener("mousemove", dragobj, true);
+				$("#"+thisname).mousemove(function(e) {
+					if (nx.editmode && e.pageX>(parseInt(($(this).width()-10))+parseInt($(this).css("left").replace("px",""))) && e.pageY>(parseInt(($(this).height()-10))+parseInt($(this).css("top").replace("px","")))) {
+						this.style.cursor = "se-resize"
 					} else {
-
-						saveToDB(uiname);
-
-		        	}
-		        	
-				}
-				
-			}
-
-			function saveToDB(name) {
-				
-				setPageName(name);
-
-			//	clearSearchbar();
-
-				var mydata = {
-					"nexus_ui": {
-						"name": name,
-						"transmission": "test",
-						"uiJSON": makeUIjson()
+						this.style.cursor = "pointer"
 					}
-				}
-				
-				mydata = JSON.stringify(mydata);
-
-				hideSearchbar()
-
-				jQuery.ajax({
-				    type: "POST",
-				    url: "http://nexus.cct.lsu.edu:8000/nexus_uis",
-				    data: mydata,
-				    crossDomain: true,
-	  				dataType: 'json',
-				    contentType: "application/json",
-				    success: function(){
-				        loadDB(setUIDB);
-				    },
-				    failure: function(errorMsg) {
-				        console.log(errorMsg);
-				    }
-				}); 
+				}) 
+			  	nx.highlightEditedObj();
+			  	nx.audioStrings[thisname] = ""
+			  	nx.audioFunctions[thisname] = new Function();
+		}
 
 
+		highlighting = false;
+		var hlaxis = new Object();
+
+		function startHighlighting(e) {
+
+			hlaxis = {
+				left: e.clientX,
+				top: e.clientY
 			}
 
+			highlighting = true;
+			$("#highlight").css("opacity","0.2");
+			$("#highlight").show(0);
+			$("#highlight").css("left", e.clientX);
+			$("#highlight").css("top", e.clientY);
+			$("#highlight").css("width", 0);
+			$("#highlight").css("height", 0);
 
-			function updateToDB(name) {
+			$("body").css("user-select", "none");
+			$("body").css("-moz-user-select", "none");
+			$("body").css("-webkit-user-select", "none");
+		} 
+		function setHighlight(e) {
+			if (highlighting) {
+				if (e.clientX > hlaxis.left) {
+					$("#highlight").css("width", e.clientX-parseInt($("#highlight").css("left")));
+				} else if (e.clientX <= hlaxis.left ) {
+					$("#highlight").css("width", hlaxis.left - e.clientX + "px");
+					$("#highlight").css("left", e.clientX);
+				}
+
+				if (e.clientY > hlaxis.top) {
+					$("#highlight").css("height", e.clientY-parseInt($("#highlight").css("top")));
+				} else if (e.clientY <= hlaxis.top ) {
+					$("#highlight").css("height", hlaxis.top - e.clientY + "px");
+					$("#highlight").css("top", e.clientY);
+
+				}
 				
-				setPageName(name);
+				
+			}
+		}
+		function stopHighlighting(e) {
+			highlighting = false;
+			$("#highlight").css("opacity","0.1");
+			massHighlight();
+		} 
+		function hideHighlight(e) {
+			$("#highlight").hide(0);
+			unhighlightAll();
+		}
 
-				var mydata = {
-					"nexus_ui": {
-						"name": name,
-						"transmission": "test",
-						"uiJSON": makeUIjson()
+		var highlightList = new Array();
+		var hldata = new Array();
+
+		function massHighlight() {
+			var hlDim = {
+				left: parseInt($("#highlight").css("left")),
+				top: parseInt($("#highlight").css("top")),
+				width: parseInt($("#highlight").css("width")),
+				height: parseInt($("#highlight").css("height"))
+			}
+			for (var i in nx.widgets) {
+				var widg = nx.widgets[i];
+				if ( widg.offset.left>=hlDim.left && widg.offset.top>=hlDim.top && widg.offset.left+widg.width<=hlDim.left+hlDim.width && widg.offset.top+widg.height<=hlDim.top + hlDim.height) {
+					widg.hlstart = {
+						left: widg.offset.left,
+						top: widg.offset.top
 					}
+					highlightList.push(widg)
+
 				}
-				
-				mydata = JSON.stringify(mydata);
+			}
+		}
 
-				hideSearchbar()
+		function unhighlightAll() {
+			highlightList = new Array();
+			//$("canvas").css("border", "solid 1px #ccc");
+		}
 
-				jQuery.ajax({
-				    type: "PUT",
-				    url: currentUI.url,
-				    data: mydata,
-				    crossDomain: true,
-	  				dataType: 'json',
-				    contentType: "application/json",
-				    success: function(){
-				        loadDB(setUIDB);
-				    },
-				    failure: function(errorMsg) {
-				        console.log(errorMsg);
-				    }
-				}); 
+		function massMove(e) {
 
+			console.log(highlightlist);
 
+			var hlshift = {
+				left: e.position.left - e.originalPosition.left,
+				top: e.position.top - e.originalPosition.top
 			}
 
+			for (var i=0;i<highlightList.length;i++) {
+				var widg = highlightList[i];
+				widg.canvas.style.left = widg.hlstart.left + hlshift.left + "px";
+				widg.canvas.style.top = widg.hlstart.top + hlshift.top + "px";
+				widg.offset = new nx.canvasOffset(nx.findPosition(widg.canvas).left,nx.findPosition(widg.canvas).top);
+			}
+
+		}
+
+		function dragobj(e) {
+			nx.widgets[globaldragid].isBeingDragged = true;
+			nx.widgets[globaldragid].preMove(e);
+		
+		}
 
 
-			var UItoLoad;
 
-			function searchDB(name) {
+		function showSettings() {
+			if (globaldragid) {
+				$("#oscpath").attr("value", nx.widgets[globaldragid].oscName);
+			}
+		}
 
-				UItoLoad = name;
-				setPageName(name);
+		function deleteObject() {
+			window[globaldragid].destroy();
+		}
 
-				loadDB(function (data) {
-					setUIDB(data)
-		        	for (var i=0;i<data.length;i++) {
+		function setoscname(val) {
+			nx.widgets[globaldragid].oscName = val;
+			nx.widgets[globaldragid].draw();
+		}
+
+		function changeip(val) {
+			nx.oscIp = val;
+		}
+
+		function blockMove(e) {
+       		e.preventDefault();
+		}
+
+		function setcursor(e) {
+		}
+		
+		function saveUI() {
+
+		 	var html = '<!doctype html>\n'
+	    	+ '<html>   \n'
+			+ '<head>   \n'
+			+ '<title>NexusDrop</title>\n' 
+			+ '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n'
+			+ '<meta name="viewport" content="initial-scale=0.5, user-scalable=no"/>\n'
+			+ '<script type="text/javascript" src="jquery.js"><\/script>\n'
+			+ '<script type="text/javascript" src="nexusUI.js"><\/script>\n'
+			+ '</head>\n'                
+			+ '<body>\n'                
+			+ '<script>\n'
+			+ 'nx.onload = function() {\n'
+			+ '	nx.colorize("'+uicolor+'");\n'
+			+ '	nx.sendsTo("ajax");\n'
+			+ '	nx.usesScript("nexusOSCRelay.php");\n'
+			+ '}\n'
+			+ '<\/script>\n';
+
+			for (var i in nx.widgets) {
+				var thisobj = document.getElementById(nx.widgets[i].canvasID);
+				var thisosc = nx.widgets[i].oscName;
+				thisosc = thisosc.replace("/","")
+				html += '<canvas id="'+thisosc+'" nx="'+thisobj.getAttribute("nx")+'" style="position:absolute;top:'+thisobj.style.top+';left:'+thisobj.style.left+';height:'+nx.widgets[i].height+'px;width:'+nx.widgets[i].width+'px"></canvas>\n'
+			}
+
+			html += '</body>\n'
+			+ '</html>\n';
+
+
+			var blob = new Blob([html], {type: "text/html;charset=utf-8"});
+			saveAs(blob, "nexusdrop.html");
+			
+		}
+
+
+
+		// mobile specific stuff
+
+		function perform() {
+			if (!nx.editmode) {
+				//turn editing on
+				$("#perfbutt").html("unlocked")
+			//	$("#perfbutt").css("background-color","#ddd")
+				$("#addbutt").show(0);
+				$("#editbutt").show(0);
+				nx.editOn();
+			//	nx.setLabels("on")
+			} else {
+				$("#perfbutt").html("locked")
+				$("#addbutt").hide(0);
+				$("#editbutt").hide(0);
+			//	$("#perfbutt").css("background-color","#9df")
+				nx.editOff();
+			//	nx.setLabels("off")
+			}
+
+		}
+
+		function storeUI(uiname) {
+			localStorage[uiname] = makeUIjson();
+		//	findUIs();
+
+		}
+
+		function makeUIjson() {
+			var jsonui = {
+				"globalAudio": nx.globalAudioString,
+				"elements": new Array(),
+				"settings": {
+					"colors": nx.colors,
+					"votes": 0,
+					"timestamp": new Date()
+				}
+			}
+
+			for (var i in nx.widgets) {
+
+				var objsettings = nx.widgets[i].settings ? nx.widgets[i].settings : "";
+				
+				jsonui.elements[i] = {
+					type: nx.widgets[i].getName(),
+					canvasID: nx.widgets[i].canvasID,
+					oscName: nx.widgets[i].oscName,
+					width: nx.widgets[i].width,
+					height: nx.widgets[i].height,
+					"top": nx.widgets[i].offset.top,
+					"left": nx.widgets[i].offset.left,
+					"audioString": nx.audioStrings[nx.widgets[i].canvasID],
+					"settings": objsettings
+				}
+			}
+			return JSON.stringify(jsonui);
+		}
+
+
+
+		function recallUILocally(uiname) {
+		//	if (JSON.parse(uijson)localStorage[uiname]) {
+		//		console.log(localStorage[uiname])
+				if (localStorage[uiname]!=undefined) {
+					buildUIfromJSON(localStorage[uiname])
+				}
+				
+		//	}
+		}
+
+		function buildUIfromJSON(uijson) {
+
+			var nxui = JSON.parse(uijson)
+
+			$("#nxui").html("");
+			nx.widgets = new Object();
+			nx.elemTypeArr = new Array();
+
+			// audio
+
+			//check for global audio property
+			if (nxui.globalAudio) {
+				nx.globalAudioString = nxui.globalAudio;
+			} else {
+				nx.globalAudioString = defaultglobalaudio;
+			}
+			showGlobalAudioCode();
+
+			if (nxui.settings) {
+				renderSettings(nxui.settings);
+			}
+			
+
+			//check for elements property, and overwrite nxui with just the elements
+			if (nxui.elements) {
+				nxui = nxui.elements;
+			}
+			//otherwise assume list is only elements
+
+			for (var i=0;i<nxui.length;i++) {
+
+				// if it has an nx attribute, store that in nxId
+				var nxId = nxui[i].type;
+				var thisname = nxui[i].canvasID;
+				thisname = thisname.replace("/","");
+				if(nxId) {
+
+					var widget = nx.add(nxId, {
+						x: nxui[i].left,
+						y: nxui[i].top,
+						w: nxui[i].width,
+						h: nxui[i].height,
+						name: thisname,
+						parent: 'nxui' 
+					})
+
+					window[widget.canvasID] = widget;
+
+					nx.widgets[thisname].oscName = nxui[i].oscName;
+					globaldragid = thisname;
+					$("#"+thisname).mousemove(function(e) {
+						if (nx.editmode && e.pageX>(parseInt(($(this).width()-20))+parseInt($(this).css("left").replace("px",""))) && e.pageY>(parseInt(($(this).height()-20))+parseInt($(this).css("top").replace("px","")))) {
+							this.style.cursor = "se-resize";
+						} else {
+							this.style.cursor = "pointer";
+						}
+					}) 
+					nx.audioStrings[thisname] = nxui[i].audioString;
+					nx.audioFunctions[thisname] = new Function("data", nxui[i].audioString);
+				}
+			}
+			nx.onload();
+			showSettings();
+			$("#edit").hide(0);
+			$("canvas").css("border", "solid 1px #ccc");
+
+			if (loadInPerformance) {
+				updateGlobalAudio();
+				loadInPerformance = false;
+			}
+		}
+
+		function renderSettings(settings) {
+			if (settings.colors) {
+				nx.colors = settings.colors;
+			}
+		}
+
+
+
+		function changeColor(newcolor) {
+			uicolor = newcolor;
+			nx.colorize(newcolor);
+		}
+
+
+
+
+		/**** COMMUNICATE WITH DB ****/
+
+
+		function askToSaveToDB() {
+			var uiname = prompt("Please name your interface", pageName);
+			var overwriting = false;
+			if (uiname) {
+
+				for (var i=0;i<UIDB.length;i++) {
+	        		if (UIDB[i].name) {
+		        		if (UIDB[i].name.toLowerCase() == uiname.toLowerCase()) {
+		           			currentUI = UIDB[i];
+		           			overwriting = true;
+		           			break;
+		           		}
+		           	}
+	        	}
+
+	        	if (overwriting) {
+
+					var confirmoverwrite = confirm("Are you sure you want to overwrite the interface:" + currentUI.name);
+
+		        	if (!confirmoverwrite) { return }
+
+					updateToDB(uiname)
+
+				} else {
+
+					saveToDB(uiname);
+
+	        	}
+	        	
+			}
+			
+		}
+
+		function saveToDB(name) {
+			
+			setPageName(name);
+
+		//	clearSearchbar();
+
+			var mydata = {
+				"nexus_ui": {
+					"name": name,
+					"transmission": "test",
+					"uiJSON": makeUIjson()
+				}
+			}
+			
+			mydata = JSON.stringify(mydata);
+
+			hideSearchbar()
+
+			jQuery.ajax({
+			    type: "POST",
+			    url: "http://nexus.cct.lsu.edu:8000/nexus_uis",
+			    data: mydata,
+			    crossDomain: true,
+  				dataType: 'json',
+			    contentType: "application/json",
+			    success: function(){
+			        loadDB(setUIDB);
+			    },
+			    failure: function(errorMsg) {
+			        console.log(errorMsg);
+			    }
+			}); 
+
+
+		}
+
+
+		function updateToDB(name) {
+			
+			setPageName(name);
+
+			var mydata = {
+				"nexus_ui": {
+					"name": name,
+					"transmission": "test",
+					"uiJSON": makeUIjson()
+				}
+			}
+			
+			mydata = JSON.stringify(mydata);
+
+			hideSearchbar()
+
+			jQuery.ajax({
+			    type: "PUT",
+			    url: currentUI.url,
+			    data: mydata,
+			    crossDomain: true,
+  				dataType: 'json',
+			    contentType: "application/json",
+			    success: function(){
+			        loadDB(setUIDB);
+			    },
+			    failure: function(errorMsg) {
+			        console.log(errorMsg);
+			    }
+			}); 
+
+
+		}
+
+
+
+		var UItoLoad;
+
+		function searchDB(name) {
+
+			UItoLoad = name;
+			setPageName(name);
+
+			loadDB(function (data) {
+				setUIDB(data)
+	        	for (var i=0;i<data.length;i++) {
+	        		if (data[i].name) {
+		        		if (data[i].name.toLowerCase() == UItoLoad.toLowerCase()) {
+
+
+		           			buildUIfromJSON(data[i].uiJSON);
+		           			currentUI = data[i];
+							clearGlobalAudio();
+		           			return;
+		           		}
+		           	}
+	        	}
+	        	alert("Could not find the UI: "+UItoLoad);
+		    })
+		}
+
+		var UIDB;
+
+		function loadDB(callback) {
+
+			$.ajax({
+				type: "GET",
+			    url: "http://nexus.cct.lsu.edu:8000/nexus_uis.json",
+			    crossDomain: true,
+  				dataType: 'json',
+			    contentType: "application/json",
+		        success: function(data) {
+		        	callback(data);
+			        for (var i=0;i<data.length;i++) {
 		        		if (data[i].name) {
-			        		if (data[i].name.toLowerCase() == UItoLoad.toLowerCase()) {
-
-
-			           			buildUIfromJSON(data[i].uiJSON);
+			        		if (data[i].name.toLowerCase() == pageName.toLowerCase()) {
 			           			currentUI = data[i];
-								clearGlobalAudio();
 			           			return;
 			           		}
 			           	}
 		        	}
-		        	alert("Could not find the UI: "+UItoLoad);
-			    })
-			}
+		        },
+		        error: function(err) {
+		        	console.log(err)
+		        }
+			})
 
-			var UIDB;
+		}
 
-			function loadDB(callback) {
+	//	loadDB(setUIDB);
 
-				$.ajax({
-					type: "GET",
-				    url: "http://nexus.cct.lsu.edu:8000/nexus_uis.json",
-				    crossDomain: true,
-	  				dataType: 'json',
-				    contentType: "application/json",
-			        success: function(data) {
-			        	callback(data);
-				        for (var i=0;i<data.length;i++) {
-			        		if (data[i].name) {
-				        		if (data[i].name.toLowerCase() == pageName.toLowerCase()) {
-				           			currentUI = data[i];
-				           			return;
-				           		}
-				           	}
-			        	}
-			        },
-			        error: function(err) {
-			        	console.log(err)
-			        }
-				})
+		function setUIDB(data) {
+			UIDB = data;
+			showSearchbar()
+		}
 
-			}
-
-		//	loadDB(setUIDB);
-
-			function setUIDB(data) {
-				UIDB = data;
-				showSearchbar()
-			}
-
-			function sortDB(name) {
-				var options = "";
-				if (name.length>0) {
-				    for(var i = 0; i < UIDB.length; i++) {
-				    	dbname = UIDB[i].name
-				    	if (dbname) {
-					    	if (dbname.substring(0,name.length).toLowerCase()==name.toLowerCase()) {
-					    		options += '<a class="dbopt" href="javascript:searchDB(\''+UIDB[i].name+'\')">'+UIDB[i].name+'</a> ';
-					    	}
-					    }
+		function sortDB(name) {
+			var options = "";
+			if (name.length>0) {
+			    for(var i = 0; i < UIDB.length; i++) {
+			    	dbname = UIDB[i].name
+			    	if (dbname) {
+				    	if (dbname.substring(0,name.length).toLowerCase()==name.toLowerCase()) {
+				    		options += '<a class="dbopt" href="javascript:searchDB(\''+UIDB[i].name+'\')">'+UIDB[i].name+'</a> ';
+				    	}
 				    }
-				}
-			    document.getElementById('searchresults').innerHTML = options;
-
+			    }
 			}
+		    document.getElementById('searchresults').innerHTML = options;
 
-			nx.audioFunctions = new Object();
+		}
 
-
-			var currentUI = false;
-
-
-
-			function deleteFromDB() {
-				if (confirm("Are you sure you want to delete "+pageName+"?")) {
-
-					hideSearchbar()
-
-					if (currentUI) {
-						console.log(currentUI.url)
-						$.ajax({
-					        url: currentUI.url,
-					        type: 'DELETE',
-					        crossDomain: true,
-			  				dataType: 'json',
-						    contentType: "application/json",
-					        success: function(data) {
-								console.log(2)
-					        	loadDB(setUIDB);
-					        },
-					        error: function(err) {
-					        	console.log(err)
-					        }
-					    });
-
-					} else {
-						showSearchbar()
-					}
-
-					newPage();
+		nx.audioFunctions = new Object();
 
 
-				}
-			}
+		var currentUI = false;
 
 
 
-			function hideSearchbar() {
-				$("#loadsection").hide(0)
-				$("#loadsection_loading").show(0)
-				clearSearchbar()
-			}
-			function showSearchbar() {
-				$("#loadsection").show(0)
-				$("#loadsection_loading").hide(0)
-			}
-			function clearSearchbar() {
-				$("#searchresults").html("");
-				$("#searchdb").val("")
-			}
+		function deleteFromDB() {
+			if (confirm("Are you sure you want to delete "+pageName+"?")) {
 
+				hideSearchbar()
 
+				if (currentUI) {
+					console.log(currentUI.url)
+					$.ajax({
+				        url: currentUI.url,
+				        type: 'DELETE',
+				        crossDomain: true,
+		  				dataType: 'json',
+					    contentType: "application/json",
+				        success: function(data) {
+							console.log(2)
+				        	loadDB(setUIDB);
+				        },
+				        error: function(err) {
+				        	console.log(err)
+				        }
+				    });
 
-
-
-			/* inline coding */
-
-			function saveCallback() {
-				var callback = callbackeditor.getValue()
-				nx.audioStrings[globaldragid] = callback.toString();
-
-				try {
-					$("#guicallback").css("background-color","#222");
-					nx.audioFunctions[globaldragid] = new Function("data", callback.toString());
-				} catch(e) {
-					$("#guicallback").css("background-color","#500");
-
-				} 
-			}
-
-			function saveGlobalAudio() {
-				var ga = globaleditor.getValue()
-				nx.globalAudioString = ga.toString();
-			}
-
-
-
-			nx.allTraffic = function(obj, data) {
-				nx.audioFunctions[obj.canvasID](data)
-			}
-
-			function showGlobalAudioCode() {
-			//	$("#guiglobalaudio").val(nx.globalAudioString);
-				globaleditor.setValue(nx.globalAudioString)
-
-						//To focus the ace editor
-				//		globaleditor.focus();
-						var session = globaleditor.getSession();
-						//Get the number of lines
-						var count = session.getLength();
-						//Go to end of the last line
-						globaleditor.gotoLine(count, session.getLine(count-1).length);
-				//		globaleditor.focus();
-	            	
-			}
-
-			function showElementCallbackCode(element) {
-				var al = document.getElementById("arrow-left")
-				var ar = document.getElementById("arrow-right")
-				$("#roamingcode").css("top", element.offset.top + "px");
-				if (element.offset.left <= window.innerWidth/2) {
-					$("#roamingcode").css("left", element.offset.left + element.width + 3 + "px");
-					al.style.display = "block";
-					ar.style.display = "none";
 				} else {
-					$("#roamingcode").css("left", element.offset.left - $("#roamingcode").width() + "px");
-					ar.style.display = "block";
-					al.style.display = "none";
-
+					showSearchbar()
 				}
 
-
-
-
-				callbackeditor.setValue(nx.audioStrings[element.canvasID])
-
-
-
-	            var e = $('#roamingcode');
-	            e.not(':animated').css({'opacity': 1 }).effect("scale", {origin:['middle','center'], from:{width:0,height:0}, percent: 100, direction: 'both', easing: "easeOutExpo" }, 300, function() {
-	            	
-
-						//To focus the ace editor
-						callbackeditor.focus();
-						var session = callbackeditor.getSession();
-						//Get the number of lines
-						var count = session.getLength();
-						//Go to end of the last line
-						callbackeditor.gotoLine(count, session.getLine(count-1).length);
-						callbackeditor.focus();
-
-	            });
-
-
-
-			//	$("#guicallback").val(nx.audioStrings[element.canvasID]);
-				$("#perelement").html(element.oscName);
-				var dataprops = " &nbsp;[data] &nbsp;";
-				for (var key in element.val) {
-					dataprops += "data."+key+" &nbsp;"
-				}
-				if (dataprops.length >=100) { dataprops = dataprops.substring(0,100) + " ... "}
-				$("#dataprops").html("("+dataprops+")");
-
+				newPage();
 
 
 			}
+		}
 
-			function hideElementCallbackCode() {
-				$("#roamingcode").hide(0);
+
+
+		function hideSearchbar() {
+			$("#loadsection").hide(0)
+			$("#loadsection_loading").show(0)
+			clearSearchbar()
+		}
+		function showSearchbar() {
+			$("#loadsection").show(0)
+			$("#loadsection_loading").hide(0)
+		}
+		function clearSearchbar() {
+			$("#searchresults").html("");
+			$("#searchdb").val("")
+		}
+
+
+
+
+
+		/* inline coding */
+
+		function saveCallback() {
+		////	var callback = callbackeditor.getValue()
+		////	nx.audioStrings[globaldragid] = callback.toString();
+
+			try {
+				$("#guicallback").css("background-color","#222");
+				nx.audioFunctions[globaldragid] = new Function("data", callback.toString());
+			} catch(e) {
+				$("#guicallback").css("background-color","#500");
+
+			} 
+		}
+
+		function saveGlobalAudio() {
+			var ga = globaleditor.getValue()
+			nx.globalAudioString = ga.toString();
+		}
+
+
+
+		nx.allTraffic = function(obj, data) {
+			nx.audioFunctions[obj.canvasID](data)
+		}
+
+		function showGlobalAudioCode() {
+	/*	//	$("#guiglobalaudio").val(nx.globalAudioString);
+			globaleditor.setValue(nx.globalAudioString)
+
+			//To focus the ace editor
+			var session = globaleditor.getSession();
+			//Get the number of lines
+			var count = session.getLength();
+			//Go to end of the last line
+			globaleditor.gotoLine(count, session.getLine(count-1).length);
+			*/
+            	
+		}
+
+		function showElementCallbackCode(element) {
+			var al = document.getElementById("arrow-left")
+			var ar = document.getElementById("arrow-right")
+			$("#roamingcode").css("top", element.offset.top + "px");
+			if (element.offset.left <= window.innerWidth/2) {
+				$("#roamingcode").css("left", element.offset.left + element.width + 3 + "px");
+				al.style.display = "block";
+				ar.style.display = "none";
+			} else {
+				$("#roamingcode").css("left", element.offset.left - $("#roamingcode").width() + "px");
+				ar.style.display = "block";
+				al.style.display = "none";
+
 			}
 
-			/* global */
 
-			function updateGlobalAudio() {
+
+
+		////	callbackeditor.setValue(nx.audioStrings[element.canvasID])
+
+
+
+            var e = $('#roamingcode');
+            e.not(':animated').css({'opacity': 1 }).effect("scale", {origin:['middle','center'], from:{width:0,height:0}, percent: 100, direction: 'both', easing: "easeOutExpo" }, 300, function() {
+            	
+
+					//To focus the ace editor
+					callbackeditor.focus();
+					var session = callbackeditor.getSession();
+					//Get the number of lines
+					var count = session.getLength();
+					//Go to end of the last line
+					callbackeditor.gotoLine(count, session.getLine(count-1).length);
+					callbackeditor.focus();
+
+            });
+
+
+
+		//	$("#guicallback").val(nx.audioStrings[element.canvasID]);
+			$("#perelement").html(element.oscName);
+			var dataprops = " &nbsp;[data] &nbsp;";
+			for (var key in element.val) {
+				dataprops += "data."+key+" &nbsp;"
+			}
+			if (dataprops.length >=100) { dataprops = dataprops.substring(0,100) + " ... "}
+			$("#dataprops").html("("+dataprops+")");
+
+
+
+		}
+
+		function hideElementCallbackCode() {
+			$("#roamingcode").hide(0);
+		}
+
+		/* global */
+
+		function updateGlobalAudio() {
+			renderAudio();
+		/*	if (Gibber.started) {
+				Gibber.clear(renderAudio);
+			//	setTimeout(renderAudio, 2000);
+				console.log("started")
+			} else {
 				renderAudio();
-			/*	if (Gibber.started) {
-					Gibber.clear(renderAudio);
-				//	setTimeout(renderAudio, 2000);
-					console.log("started")
-				} else {
-					renderAudio();
-					console.log("notstarted")
-				} */
-			//	setTimeout(renderAudio, 1000);
-			}
+				console.log("notstarted")
+			} */
+		//	setTimeout(renderAudio, 1000);
+		}
 
-			function clearGlobalAudio() {
-				Gibber.clear();
-			}
+		function clearGlobalAudio() {
+			Gibber.clear();
+		}
 
-			function renderAudio() {
-				nx.globalAudioString = globaleditor.getValue();
+		function renderAudio() {
+		////	nx.globalAudioString = globaleditor.getValue();
 
-				$.globalEval(nx.globalAudioString);
-				Gibber.started = true;
-			}
+			$.globalEval(nx.globalAudioString);
+			Gibber.started = true;
+		}
 
 
-			/* new page */
+		/* new page */
 
-			function newPage(justloaded) {
-				currentUI = false;
-				nx.widgets = new Object();
-				nx.elemTypeArr = new Array();
-				$("#nxui").html("");
+		function newPage(justloaded) {
+			currentUI = false;
+			nx.widgets = new Object();
+			nx.elemTypeArr = new Array();
+			$("#nxui").html("");
+			nx.globalAudioString = defaultglobalaudio;
+			showGlobalAudioCode();
+			updateGlobalAudio()
+		////	callbackeditor.setValue("");
+			setPageName("Untitled")
+			if (!justloaded) {
+			//	clearGlobalAudio();
+			} else {
 				nx.globalAudioString = defaultglobalaudio;
-				showGlobalAudioCode();
-				updateGlobalAudio()
-				callbackeditor.setValue("");
-				setPageName("Untitled")
-				if (!justloaded) {
-				//	clearGlobalAudio();
-				} else {
-					nx.globalAudioString = defaultglobalaudio;
-				}
 			}
+		}
 
-			var defaultglobalaudio = "\n// Welcome to Nexus's web audio environment!\n// AudioContext is initialized as variable c \n\n";
+		var defaultglobalaudio = "\n// Welcome to Nexus's web audio environment!\n// AudioContext is initialized as variable c \n\n";
 
-			var IDEon = true;
+		var IDEon = true;
 
-			function toggleIDE() {
-				if (IDEon) {
-					IDEon = false;
-					hideIDE();
-					nx.sendsTo("ajax");
-				} else {
-					IDEon = true;
-					showIDE();
-					nx.sendsTo("js");
-				}
+		function toggleIDE() {
+			if (IDEon) {
+				IDEon = false;
+				hideIDE();
+				nx.sendsTo("ajax");
+			} else {
+				IDEon = true;
+				showIDE();
+				nx.sendsTo("js");
 			}
+		}
 
-			function showIDE() {
-				$("#codingarea").animate({"bottom": "0px"}, 400);
-			}
+		function showIDE() {
+			$("#codingarea").animate({"bottom": "0px"}, 400);
+		}
 
-			function hideIDE() {
-				$("#codingarea").animate({"bottom": "-200px"}, 400);
-			}
+		function hideIDE() {
+			$("#codingarea").animate({"bottom": "-200px"}, 400);
+		}
 
-			function setPageName(name) {
-				pageName = name;
-				$("#title").val(name);
-			}
+		function setPageName(name) {
+			pageName = name;
+			$("#title").val(name);
+		}
 
-			function makeWidget(title,e) {
-				console.log(e);
-				$("#sidebar").css("opacity",0.6);
-				document.body.style.userSelect = "none";
-				document.body.style.mozUserSelect = "none";
-				document.body.style.webkitUserSelect = "none";
-				createObject(title,e.pageY);
+		function makeWidget(title,e) {
+			console.log(e);
+			$("#sidebar").css("opacity",0.6);
+			document.body.style.userSelect = "none";
+			document.body.style.mozUserSelect = "none";
+			document.body.style.webkitUserSelect = "none";
+			createObject(title,e.pageY,e.pageX);
 
-			}
+		}
 
-		</script>
-	</head>
-	<body>
-		<style>
+	</script>
+</head>
+<body>
+	<style>
 
-			body {
-				margin:0px;
-				padding:0px;
-			}
+		body {
+			margin:0px;
+			padding:0px;
+		}
 
-			.butt {
-				text-align:center;
-				width:45%;
-				box-sizing:border-box;
-				padding:10px 10px;
-				margin:20px auto;
-				border:solid 1px #ccc;
-				font-size:12pt;
-				background-color:#ddd;
-			}
+		.butt {
+			text-align:center;
+			width:45%;
+			box-sizing:border-box;
+			padding:10px 10px;
+			margin:20px auto;
+			border:solid 1px #ccc;
+			font-size:12pt;
+			background-color:#ddd;
+		}
 
-			.nxbutt {
-				float:left;
-				text-align:center;
-				width:45%;
-				box-sizing:border-box;
-				padding:10px 10px;
-				margin:10px 2%;
-				border:solid 1px #ccc;
-				font-size:12pt;
-				background-color:#ddd;
-			}
+		.nxbutt {
+			float:left;
+			text-align:center;
+			width:45%;
+			box-sizing:border-box;
+			padding:10px 10px;
+			margin:10px 2%;
+			border:solid 1px #ccc;
+			font-size:12pt;
+			background-color:#ddd;
+		}
 
-			body, input, button {
-				font-family:helvetica;
-				font-size: 12pt;
-				font-weight:100;
-				user-select:none;
-				-moz-user-select:none;
-				-webkit-user-select:none;
-			}
+		body, input, button {
+			font-family:helvetica;
+			font-size: 12pt;
+			font-weight:100;
+			user-select:none;
+			-moz-user-select:none;
+			-webkit-user-select:none;
+		}
 
-			#addnew {
-				display:none;
-				width:70px;
-				height:40px;
-				float:left;
-			}
+		#addnew {
+			display:none;
+			width:70px;
+			height:40px;
+			float:left;
+		}
 
-			.overlay {
-				position:fixed;
-				left:0px;
-				top:0px;
-				width:100%;
-				height:100%;
-				box-sizing:border-box;
-				background-color:#eee;
-				display:none;
-				overflow:auto;
-				z-index:100;
-			}
+		.overlay {
+			position:fixed;
+			left:0px;
+			top:0px;
+			width:100%;
+			height:100%;
+			box-sizing:border-box;
+			background-color:#eee;
+			display:none;
+			overflow:auto;
+			z-index:100;
+		}
 
-			/* new */
+		/* new */
 
-			/* ui page */
+		/* ui page */
 
-			#nxui {
-				position:absolute;
-				width:100%;
-				height:100%;
-			}
+		#nxui {
+			position:absolute;
+			width:100%;
+			height:100%;
+		}
 
-			/* sidebar */
+		/* sidebar */
 
-			#sidebar {
-				position:fixed;
-				top:0px;
-				right:0px;
-				height:100%;
-				background-color:#fafafa;
-				border-right:solid 1px #ccc;
-				width:165px;
-				z-index:3;
+		#sidebar {
+			position:fixed;
+			top:0px;
+			right:0px;
+			height:100%;
+			background-color:#fafafa;
+			border-right:solid 1px #ccc;
+			width:165px;
+			z-index:3;
 
-			}
+		}
 
-			#sidebar input {
-				padding:4px 10px;
-				box-sizing:border-box;
-				outline:solid 0px;
-			}
+		#sidebar input {
+			padding:4px 10px;
+			box-sizing:border-box;
+			outline:solid 0px;
+		}
 
-			#sidebar #titleimg {
-				width:100%;
-				font-size:11px;
-				border:none;
-				font-weight:normal;
-				color:#ccc;
-				padding:5px 10px 2px;
-				letter-spacing:1px;
-			}
+		#sidebar #titleimg {
+			width:100%;
+			font-size:11px;
+			border:none;
+			font-weight:normal;
+			color:#ccc;
+			padding:5px 10px 2px;
+			letter-spacing:1px;
+		}
 
-			#sidebar #titleimg img {
-				width:15px;
-				opacity:0.7;
-			}
+		#sidebar #titleimg img {
+			width:15px;
+			opacity:0.7;
+		}
 
-			#sidebar #title {
-				width:100%;
-				font-size:12px;
-				border:none;
-				font-weight:normal;
-				color:#999;
-				padding:6px 10px;
-				letter-spacing:1px;
-			}
+		#sidebar #title {
+			width:100%;
+			font-size:12px;
+			border:none;
+			font-weight:normal;
+			color:#999;
+			padding:6px 10px;
+			letter-spacing:1px;
+		}
 
-			#sidebar .header {
-				width:100%;
-				padding:5px 10px;
-				font-size:13px;
-				color:#333;
-				box-sizing:border-box;
-				background-color:#e3e3e3;
-			}
+		#sidebar .header {
+			width:100%;
+			padding:5px 10px;
+			font-size:13px;
+			color:#333;
+			box-sizing:border-box;
+			background-color:#e3e3e3;
+		}
 
-			#searchdb:focus, #oscpath:focus {
-				outline:solid 1px #444;
-			}
+		#searchdb:focus, #oscpath:focus {
+			outline:solid 1px #444;
+		}
 
-			#searchdb, #oscpath {
-				color:#555;
-				font-size:13px;
-				margin:3px;
-				display:block;
-				box-sizing:border-box;
-				width:159px;
-			}
+		#searchdb, #oscpath {
+			color:#555;
+			font-size:13px;
+			margin:3px;
+			display:block;
+			box-sizing:border-box;
+			width:159px;
+		}
 
-			#elemlist {
-				height:100%;
-				width:100%;
-				overflow:auto;
-			}
+		#elemlist {
+			height:100%;
+			width:100%;
+			overflow:auto;
+		}
 
-			.nxopt {
-				padding:4px 10px;
-				font-size:14px;
-				color:#444;
-				border:solid 1px #eee;
-			}
+		.nxopt {
+			padding:4px 10px;
+			font-size:14px;
+			color:#444;
+			border:solid 1px #eee;
+		}
 
-			#footer {
-				position:absolute;
-				bottom:0px;
-				display:block;
-				width:100%;
-				background-color:#f7f7f7;
-			}
+		#footer {
+			position:absolute;
+			bottom:0px;
+			display:block;
+			width:100%;
+			background-color:#f7f7f7;
+		}
 
-			#oscpath {
-				width:120px;
-				float:left;
-			}
+		#oscpath {
+			width:120px;
+			float:left;
+		}
 
-			#elemtrash, #savetodb, #dbtrash, #moreoptions, #newpage {
-				opacity:0.7;
-				margin-left:5px;
-				cursor:pointer;
-				height:20px;
-			}
+		#elemtrash, #savetodb, #dbtrash, #moreoptions, #newpage {
+			opacity:0.7;
+			margin-left:5px;
+			cursor:pointer;
+			height:20px;
+		}
 
-			#elemtrash, #locked {
-				opacity:0.7;
-				margin-left:5px;
-				cursor:pointer;
-				height:30px;
-			}
+		#elemtrash, #locked {
+			opacity:0.7;
+			margin-left:5px;
+			cursor:pointer;
+			height:30px;
+		}
 
-			#savetodb, #dbtrash, #moreoptions, #locked, #newpage {
-				margin-top:3px;
-				margin-bottom:3px;
-			}
-
-
-
-			#savetodb {
-				margin-left:10px;
-			}
-
-			#locked {
-				position:absolute;
-				right:170px;
-				bottom:5px;
-			}
-
-			.dbopt {
-				font-size:13px;
-				color:#048;
-				margin:2px 0px 2px 10px;
-				line-height:25px;
-			}
-
-			input {   
-			    -webkit-user-select: text;
-			    -khtml-user-select: text;
-			    -moz-user-select: text;
-			    -ms-user-select: text;
-			    user-select: text;
-			
-			}
-		</style>
+		#savetodb, #dbtrash, #moreoptions, #locked, #newpage {
+			margin-top:3px;
+			margin-bottom:3px;
+		}
 
 
-		<div style="width:568px;height:320px;border:dashed 1px #aaa;position:absolute;top:0px;left:0px;">
-			<div style="background-color:#eee;font-size:8pt;font-family:gill sans;color:#bbb;top:0px;right:0px;padding:3px;position:absolute;">iPhone 5</div>
+
+		#savetodb {
+			margin-left:10px;
+		}
+
+		#locked {
+			position:absolute;
+			right:170px;
+			bottom:5px;
+		}
+
+		.dbopt {
+			font-size:13px;
+			color:#048;
+			margin:2px 0px 2px 10px;
+			line-height:25px;
+		}
+
+		input {   
+		    -webkit-user-select: text;
+		    -khtml-user-select: text;
+		    -moz-user-select: text;
+		    -ms-user-select: text;
+		    user-select: text;
+		
+		}
+	</style>
+
+
+	<div style="width:568px;height:320px;border:dashed 1px #aaa;position:absolute;top:0px;left:0px;">
+		<div style="background-color:#eee;font-size:8pt;font-family:gill sans;color:#bbb;top:0px;right:0px;padding:3px;position:absolute;">iPhone 5</div>
+	</div>
+
+	<div id="nxui"></div>
+	
+
+	<div id="sidebar">
+
+		<div class="header">
+			<a style="text-decoration:none;font-weight:bold;font-size:9pt;color:#888" href="info/">BRAID</a>
+			<a style="position:absolute;right:15px;top:5px;color:#0af;text-decoration:none;" href="info/">info</a>
 		</div>
 
-		<div id="nxui"></div>
-		
-
-		<div id="sidebar">
-
-			<div class="header">
-				<a style="text-decoration:none;font-weight:bold;font-size:9pt;color:#888" href="info/">BRAID</a>
-				<a style="position:absolute;right:15px;top:5px;color:#0af;text-decoration:none;" href="info/">info</a>
-			</div>
-
-			<input id="title" type="text" value="Untitled"></input>
+		<input id="title" type="text" value="Untitled"></input>
 
 
 
-			<!--	<div class="header">
-					Interface
-				</div> -->
+		<!--	<div class="header">
+				Interface
+			</div> -->
 
-				<img src="images/newpage.png" id="newpage" onclick="newPage()" style="margin-left:10px;opacity:0.5">
-				<img src="images/disk.png" id="savetodb" onclick="askToSaveToDB()">
-				<img src="images/trash.png" id="dbtrash" onclick="deleteFromDB()">
-			<!--	<img src="images/more.png" id="moreoptions" onclick="openEdit()"> -->
-		<!--		<span style="font-size:30px;color:#aaa;font-family:trebuchet ms;margin-top:5px;margin-left:10px;float:left" onclick="toggleIDE()">&lt;&gt;</span> -->
+			<img src="images/newpage.png" id="newpage" onclick="newPage()" style="margin-left:10px;opacity:0.5">
+			<img src="images/disk.png" id="savetodb" onclick="askToSaveToDB()">
+			<img src="images/trash.png" id="dbtrash" onclick="deleteFromDB()">
+		<!--	<img src="images/more.png" id="moreoptions" onclick="openEdit()"> -->
+	<!--		<span style="font-size:30px;color:#aaa;font-family:trebuchet ms;margin-top:5px;margin-left:10px;float:left" onclick="toggleIDE()">&lt;&gt;</span> -->
 
 
-				<div style="display:inline;height:40px;float:right;padding-right:15px">
-		
-					<a href="javascript:openQR()" style="color:#c3c3c3;line-height:30px;font-size:17px;text-decoration:none;font-weight:bold">QR</a>
-
-				</div>
-
-				<div id="colorcontrols">
-					<input type="color" value="#00aaff" id="accentcolor" name="accentcolor" oninput="nx.colorize(this.value);nx.colors.accent=this.value">
-					<input type="color" value="#cccccc" id="bordercolor" name="bordercolor" oninput="nx.colorize('border',this.value)">
-					<input type="color" value="#f7f7f7" id="fillcolor" name="fillcolor" oninput="nx.colorize('fill',this.value)">
-					<input type="color" value="#ffffff" id="bgcolor" name="bgcolor" oninput="$('#nxui').css('background-color',this.value)">
-				</div>
-
-				<style>
-
-				#colorcontrols {
-
-					padding:3px 10px;
-					background-color:#f3f3f3;
-				}
-				#colorcontrols input {
-					width:20px;
-					height:20px;
-					margin:3px 0px;
-					padding:1px;
-					left:0px;
-				}
-				</style>
-
-			<script>
-
-					function openQR() {
-						qrcode.makeCode("http://www.nexusosc.com/drop/braid/?"+pageName)
-						$("#qrtitle").html(pageName);
-						$("#qrcode_overlay").fadeIn(500);
-					}
-					
-					
-
-/*
-				function openQR() {
-					var output = '<html><head><script type="text/javascript" src="libraries/qrcode.min.js"><\/script></head><body><div style="font-family:gill sans;color:#888;padding:20px">This is a QR Code to the <b>last saved or loaded interface</b> in your browser. If you have not recently saved your interface, do so now.</div><div id="qrcode" style="width:275px;margin:0 auto"></div><script>var qrcode = new QRCode(document.getElementById("qrcode"), "http://nexusosc.com/drop/braid/");<\/script></body></html>';
-					window.open("name","http://www.tester.com","width=320,height=400").document.write(output);
-				} */
-			</script>
-
-			<div class="header">
-				Load
-			</div>
-
-			<div id="loadsection">
-
-			<input id="searchdb" name="searchdb" type="text" placeholder="Search UI Database" onkeyup="if (event.keyCode == 13) {searchDB(this.value)} else {sortDB(this.value)}">
-			</input>
-
-			<div id="searchresults"></div>
+			<div style="display:inline;height:40px;float:right;padding-right:15px">
+	
+				<a href="javascript:openQR()" style="color:#c3c3c3;line-height:30px;font-size:17px;text-decoration:none;font-weight:bold">QR</a>
 
 			</div>
 
-
-			<div id="loadsection_loading" style="display:none;width:100%;">
-
-				<img src="images/loading.gif" style="width:20px;margin:15px auto;display:block">
-
-			</div>
-
-
-			<div class="header">
-				Add
+			<div id="colorcontrols">
+				<input type="color" value="#00aaff" id="accentcolor" name="accentcolor" oninput="nx.colorize(this.value);nx.colors.accent=this.value">
+				<input type="color" value="#cccccc" id="bordercolor" name="bordercolor" oninput="nx.colorize('border',this.value)">
+				<input type="color" value="#f7f7f7" id="fillcolor" name="fillcolor" oninput="nx.colorize('fill',this.value)">
+				<input type="color" value="#ffffff" id="bgcolor" name="bgcolor" oninput="$('#nxui').css('background-color',this.value)">
 			</div>
 
 			<style>
 
-				.nxoptimg {
-					float:left;
-					width:35px;
-					height:35px;
-					margin:0px 0px 0px 0px;
-					padding:9px 10px 9px 9px;
-					//border-radius:3px;
-					//-webkit-border-radius:3px;
-					border:solid 1px #f7f7f7;
-					border-left:solid 0px;
-					border-top:solid 0px;
-				}
+			#colorcontrols {
 
+				padding:3px 10px;
+				background-color:#f3f3f3;
+			}
+			#colorcontrols input {
+				width:20px;
+				height:20px;
+				margin:3px 0px;
+				padding:1px;
+				left:0px;
+			}
 			</style>
 
-			<div id="elemlist" style="background-color:white;padding-left:1px;">
+		<script>
 
-				<script>
-
-				var elembuttons = [ "button", "dial", "toggle", "slider", "position", "range", "number", "keyboard", "tilt", "multislider", "multitouch", "envelope", "matrix", "mouse", "typewriter", "string", "colors", "pixels", "wheel", "vinyl", "joints", "banner" ]
-				                     
-
-				for (var i=0;i<elembuttons.length;i++) {
-					var htmlstr = '<img class="nxoptimg" title="'+elembuttons[i]+'" draggable="false" src="images/'+elembuttons[i]+'.png" onmousedown="makeWidget(this.title,event)">'
-					document.write(htmlstr);
+				function openQR() {
+					qrcode.makeCode("http://www.nexusosc.com/drop/braid/?"+pageName)
+					$("#qrtitle").html(pageName);
+					$("#qrcode_overlay").fadeIn(500);
 				}
-				document.write('<div style="clear:both"></div>');
-
-				</script>
-
-				<br>
-				<br>
-				<br>
-				<br>
-				<br>
-				<br>
-				<br>
-				<br>
-				<br>
-				<br>
-				<br>
-				<br>
-				<br>
-				<br>
-				<br>
-				<br>
-				<br>
-				<br>
-			</div>
-
-
-
-
-			<div id="footer">
-
-				<div class="header">
-					Element
-				</div>
-
-				<input id="oscpath" type="text" placeholder="/OSCpath" onkeyup="setoscname(this.value)"></input>
-				<img src="images/trash.png" id="elemtrash" onclick="deleteObject()">
-				<div style="clear:both"></div>
-
-
-
-				<img src="images/unlocked.png" id="locked" onclick="perform()">
-
-
-			</div>
-
-		</div>
-
-
-
-		<div id="codingarea">
-			<div id="L">
-				<div class="title" onclick="toggleIDE()">global js</div>
-				<div id="guiglobalaudio"></div>
-				<button id="updateGlobalAudio" onclick="updateGlobalAudio()">Run</button>
-				<button id="clearGlobalAudio" onclick="clearGlobalAudio()">Reset</button>
 				
-			</div>
+				
+
+/*
+			function openQR() {
+				var output = '<html><head><script type="text/javascript" src="libraries/qrcode.min.js"><\/script></head><body><div style="font-family:gill sans;color:#888;padding:20px">This is a QR Code to the <b>last saved or loaded interface</b> in your browser. If you have not recently saved your interface, do so now.</div><div id="qrcode" style="width:275px;margin:0 auto"></div><script>var qrcode = new QRCode(document.getElementById("qrcode"), "http://nexusosc.com/drop/braid/");<\/script></body></html>';
+				window.open("name","http://www.tester.com","width=320,height=400").document.write(output);
+			} */
+		</script>
+
+		<div class="header">
+			Load
+		</div>
+
+		<div id="loadsection">
+
+		<input id="searchdb" name="searchdb" type="text" placeholder="Search UI Database" onkeyup="if (event.keyCode == 13) {searchDB(this.value)} else {sortDB(this.value)}">
+		</input>
+
+		<div id="searchresults"></div>
+
 		</div>
 
 
-		<div id="roamingcode">
-			<div id="arrow-left"></div>
-			<div id="arrow-right"></div>
-			<div id="R">
-				<div class="title"><span id="perelement"></span> callback
-				<span id="dataprops"></span>
-				</div>
-				<div id="guicallback" onkeyup="saveCallback(this.value)"></div>
-			</div>
+		<div id="loadsection_loading" style="display:none;width:100%;">
+
+			<img src="images/loading.gif" style="width:20px;margin:15px auto;display:block">
+
 		</div>
 
-<script src="ace/src-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+
+		<div class="header">
+			Add
+		</div>
+
+		<style>
+
+			.nxoptimg {
+				float:left;
+				width:35px;
+				height:35px;
+				margin:0px 0px 0px 0px;
+				padding:9px 10px 9px 9px;
+				//border-radius:3px;
+				//-webkit-border-radius:3px;
+				border:solid 1px #f7f7f7;
+				border-left:solid 0px;
+				border-top:solid 0px;
+			}
+
+		</style>
+
+		<div id="elemlist" style="background-color:white;padding-left:1px;">
+
+			<script>
+
+			var elembuttons = [ "button", "dial", "toggle", "slider", "position", "range", "number", "keyboard", "tilt", "multislider", "multitouch", "envelope", "matrix", "mouse", "typewriter", "string", "colors", "pixels", "wheel", "vinyl", "joints", "banner" ]
+			                     
+
+			for (var i=0;i<elembuttons.length;i++) {
+				var htmlstr = '<img class="nxoptimg" title="'+elembuttons[i]+'" draggable="false" src="images/'+elembuttons[i]+'.png" onmousedown="makeWidget(this.title,event)">'
+				document.write(htmlstr);
+			}
+			document.write('<div style="clear:both"></div>');
+
+			</script>
+
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+		</div>
+
+
+
+
+		<div id="footer">
+
+			<div class="header">
+				Element
+			</div>
+
+			<input id="oscpath" type="text" placeholder="/OSCpath" onkeyup="setoscname(this.value)"></input>
+			<img src="images/trash.png" id="elemtrash" onclick="deleteObject()">
+			<div style="clear:both"></div>
+
+
+
+			<img src="images/unlocked.png" id="locked" onclick="perform()">
+
+
+		</div>
+
+	</div>
+
+
+
+	<div id="codingarea">
+		<div id="L">
+			<div class="title" onclick="toggleIDE()">global js</div>
+			<div id="guiglobalaudio"></div>
+			<button id="updateGlobalAudio" onclick="updateGlobalAudio()">Run</button>
+			<button id="clearGlobalAudio" onclick="clearGlobalAudio()">Reset</button>
+			
+		</div>
+	</div>
+
+
+	<div id="roamingcode">
+		<div id="arrow-left"></div>
+		<div id="arrow-right"></div>
+		<div id="R">
+			<div class="title"><span id="perelement"></span> callback
+			<span id="dataprops"></span>
+			</div>
+			<div id="guicallback" onkeyup="saveCallback(this.value)"></div>
+		</div>
+	</div>
+
 
 <script>
-    var globaleditor = ace.edit("guiglobalaudio");
-    globaleditor.setTheme("ace/theme/monokai");
-    globaleditor.getSession().setMode("ace/mode/javascript");
-    globaleditor.on("change", saveGlobalAudio)
-    var callbackeditor = ace.edit("guicallback");
-    callbackeditor.setTheme("ace/theme/monokai");
-    callbackeditor.getSession().setMode("ace/mode/javascript");
-    callbackeditor.on("change", saveCallback)
+/*var globaleditor = ace.edit("guiglobalaudio");
+globaleditor.setTheme("ace/theme/monokai");
+globaleditor.getSession().setMode("ace/mode/javascript");
+globaleditor.on("change", saveGlobalAudio)
+var callbackeditor = ace.edit("guicallback");
+callbackeditor.setTheme("ace/theme/monokai");
+callbackeditor.getSession().setMode("ace/mode/javascript");
+callbackeditor.on("change", saveCallback)*/
 </script>
 
 
-		<style> 
+	<style> 
 
-			#codingarea {
-				position:fixed;
-				margin:0px;
-				padding:0px;
-				bottom:-300px;
-				left:0px;
-				height:200px;
-				width:100%;
-				max-width:920px;
-				display:block;
-				box-sizing:border-box;
-				padding-right:220px;
-				z-index:2;
-			}
+		#codingarea {
+			position:fixed;
+			margin:0px;
+			padding:0px;
+			bottom:-300px;
+			left:0px;
+			height:200px;
+			width:100%;
+			max-width:920px;
+			display:block;
+			box-sizing:border-box;
+			padding-right:220px;
+			z-index:2;
+		}
 
-			#codingarea #L {
-				width:95%;
-				height:100%;
-				float:left;
-				background-color:#ddd;
-				position:relative;
-			} 
+		#codingarea #L {
+			width:95%;
+			height:100%;
+			float:left;
+			background-color:#ddd;
+			position:relative;
+		} 
 
-			#R {
-				top:0px;
-				left:14px;
-				width:400px;
-				height:150px;
-				background-color:#ddd;
-				position:absolute;
-				border-radius:10px;
-				-webkit-border-radius:10px;
-				-moz-border-radius:10px;
-				overflow:hidden;
-			}
+		#R {
+			top:0px;
+			left:14px;
+			width:400px;
+			height:150px;
+			background-color:#ddd;
+			position:absolute;
+			border-radius:10px;
+			-webkit-border-radius:10px;
+			-moz-border-radius:10px;
+			overflow:hidden;
+		}
 
-			#roamingcode {
-				position:absolute;
-				display:none;
-				top:0px;
-				left:0px;
-				z-index:10;
-				width:430px;
-				height:150px;
-			}
+		#roamingcode {
+			position:absolute;
+			display:none;
+			top:0px;
+			left:0px;
+			z-index:10;
+			width:430px;
+			height:150px;
+		}
 
-			#codingarea #L .title, #R .title {
-				color:#333;
-				font-weight:bold;
-				font-size:12px;
-				padding:3px 10px;
-				cursor:pointer;
-			}
+		#codingarea #L .title, #R .title {
+			color:#333;
+			font-weight:bold;
+			font-size:12px;
+			padding:3px 10px;
+			cursor:pointer;
+		}
 
-			#guicallback, #guiglobalaudio {
-				width:100%;
-				height:90%;
-				outline:none;
-				font-size:10pt;
-				padding:0px;
-				border:none;
-				/*border-left:solid 1px #ccc;*/
-				background-color:#000;
-				box-sizing:border-box;
-				padding:10px;
-				font-family:lucida console, courier, sans-serif;
-				font-weight:100;
-				color:#eee;
-				position:absolute;
-			}
-			#guicallback:focus, #guiglobalaudio:focus {
-			/*	outline:solid 1px #444; */
-				background-color:#333;
-			}
+		#guicallback, #guiglobalaudio {
+			width:100%;
+			height:90%;
+			outline:none;
+			font-size:10pt;
+			padding:0px;
+			border:none;
+			/*border-left:solid 1px #ccc;*/
+			background-color:#000;
+			box-sizing:border-box;
+			padding:10px;
+			font-family:lucida console, courier, sans-serif;
+			font-weight:100;
+			color:#eee;
+			position:absolute;
+		}
+		#guicallback:focus, #guiglobalaudio:focus {
+		/*	outline:solid 1px #444; */
+			background-color:#333;
+		}
 
-			#updateGlobalAudio, #clearGlobalAudio {
-				position:absolute;
-				bottom:3px;
-				right:70px;
-				background-color:#000;
-				color:#ccc;
-				border:solid 1px #ccc;
-				font-size:9pt;
-				padding:4px 12px;
-				outline:none;
-				cursor:pointer;
-			}
-			 #clearGlobalAudio {
-			 	right:3px;
-			 }
+		#updateGlobalAudio, #clearGlobalAudio {
+			position:absolute;
+			bottom:3px;
+			right:70px;
+			background-color:#000;
+			color:#ccc;
+			border:solid 1px #ccc;
+			font-size:9pt;
+			padding:4px 12px;
+			outline:none;
+			cursor:pointer;
+		}
+		 #clearGlobalAudio {
+		 	right:3px;
+		 }
 
-			#updateGlobalAudio:hover {
-				border:solid 1px #fff;
-				color:#fff;
+		#updateGlobalAudio:hover {
+			border:solid 1px #fff;
+			color:#fff;
 
-			}
+		}
 
-			#perelement {
-				color:#06a;
-			}
+		#perelement {
+			color:#06a;
+		}
 
-			#arrow-left {
-				position:absolute;
-				left:0px;
-				top:20px;
-				width: 0; 
-				height: 0; 
-				border-top: 15px solid transparent;
-				border-bottom: 15px solid transparent; 
-				border-right:15px solid #2F3129; 
-			}
+		#arrow-left {
+			position:absolute;
+			left:0px;
+			top:20px;
+			width: 0; 
+			height: 0; 
+			border-top: 15px solid transparent;
+			border-bottom: 15px solid transparent; 
+			border-right:15px solid #2F3129; 
+		}
 
-			#arrow-right {
-				display:none;
-				position:absolute;
-				right:0px;
-				top:20px;
-				width: 0; 
-				height: 0; 
-				border-top: 16px solid transparent;
-				border-bottom: 16px solid transparent;	
-				border-left: 16px solid #111;
-			}
+		#arrow-right {
+			display:none;
+			position:absolute;
+			right:0px;
+			top:20px;
+			width: 0; 
+			height: 0; 
+			border-top: 16px solid transparent;
+			border-bottom: 16px solid transparent;	
+			border-left: 16px solid #111;
+		}
 
-			.ace_gutter {
-				width:20px;
-			}
-
-
-
-			#highlight {
-				border:solid 1px #08b;
-				background-color:#0af;
-				opacity:0.2;
-				width:100px;
-				height:100px;
-				position:absolute;
-				z-index:20;
-				display:none;
-			}
-
-			</style>
-
-
-			<div id="highlight"></div>
-
-
-			<div id="qrcode_overlay" onclick="$('#qrcode_overlay').fadeOut(200)" style="display:none;width:100%;height:100%;position:fixed;top:0px;left:0px;background-color:#f7f7f7;z-index:10">
-
-
-				<div id="qrcode" style="width:275px;margin:40px auto 20px"></div>
-
-
-				<div style="font-family:gill sans;color:#888;width:450px;margin:20px auto;font-size:18px;text-align:left;line-height:22px;">http://nexusosc.com/drop/braid?<span style="font-weight:bold" id="qrtitle" ></span></div>
-
-
-				<div style="font-family:gill sans;color:#888;width:450px;margin:20px auto;font-size:18px;text-align:justify;line-height:22px"> 
-					This is a QR Code to your last saved or loaded interface. If you have not recently saved your interface, do so now and generate a new QR code.
-				</div>
-
-				<script>
-					var qrcode = new QRCode(document.getElementById("qrcode"), "http://nexusosc.com/drop/braid/");
-				</script>
+		.ace_gutter {
+			width:20px;
+		}
 
 
 
+		#highlight {
+			border:solid 1px #08b;
+			background-color:#0af;
+			opacity:0.2;
+			width:100px;
+			height:100px;
+			position:absolute;
+			z-index:20;
+			display:none;
+		}
+
+		</style>
+
+
+		<div id="highlight"></div>
+
+
+		<div id="qrcode_overlay" onclick="$('#qrcode_overlay').fadeOut(200)" style="display:none;width:100%;height:100%;position:fixed;top:0px;left:0px;background-color:#f7f7f7;z-index:10">
+
+
+			<div id="qrcode" style="width:275px;margin:40px auto 20px"></div>
+
+
+			<div style="font-family:gill sans;color:#888;width:450px;margin:20px auto;font-size:18px;text-align:left;line-height:22px;">http://nexusosc.com/drop/braid?<span style="font-weight:bold" id="qrtitle" ></span></div>
+
+
+			<div style="font-family:gill sans;color:#888;width:450px;margin:20px auto;font-size:18px;text-align:justify;line-height:22px"> 
+				This is a QR Code to your last saved or loaded interface. If you have not recently saved your interface, do so now and generate a new QR code.
 			</div>
 
+			<script>
+				var qrcode = new QRCode(document.getElementById("qrcode"), "http://nexusosc.com/drop/braid/");
 
 
-	</body>	
+
+ 				Gibber.init();
+
+			</script>
+
+
+
+		</div>
+
+
+
+<script>
+
+var myCodeMirror = CodeMirror(document.getElementById('guiglobalaudio'), {
+  value: "function myScript(){return 100;}\n",
+  mode:  "javascript"
+});
+
+</script>
+
+
+</body>	
 </html>

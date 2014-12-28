@@ -20,7 +20,7 @@ window.nx = extend(window.nx,mathUtils)
 
 window.onload = function() {
 
-  nx.addStylesheet();
+//  nx.addStylesheet();
 
   // get all canvases on the page and add them to the manager
   var allcanvi = document.getElementsByTagName("canvas");
@@ -351,7 +351,7 @@ manager.prototype.setLabels = function(onoff) {
 manager.prototype.blockMove = function(e) {
   if (e.target.tagName == 'CANVAS') {
      e.preventDefault();
-     e.stopPropogation();
+  //   e.stopPropogation();
   }
 }
 },{"../utils/timing":7,"../utils/transmit":8,"../widgets":15,"events":34,"util":38}],3:[function(require,module,exports){
@@ -529,7 +529,9 @@ widget.prototype.getOffset = function() {
   this.offset = domUtils.findPosition(this.canvas)
 }
 
+
 widget.prototype.preClick = function(e) {
+  this.hasMoved = false;
   this.offset = domUtils.findPosition(this.canvas)
   document.addEventListener("mousemove", this.preMove, false);
   document.addEventListener("mouseup", this.preRelease, false);
@@ -538,17 +540,18 @@ widget.prototype.preClick = function(e) {
   this.deltaMove.x = 0;
   this.deltaMove.y = 0;
   if (nx.editmode) {
-    if (this.clickPos.x>this.width-20 && this.clickPos.y>this.height-20) {
+    if (this.clickPos.x>this.width-20 && this.clickPos.y>this.height-20 && this.type!="mouse") {
       this.isBeingResized = true;
+      hideElementCallbackCode();
     } else {
       this.isBeingResized = false;
       this.isBeingDragged = true;
     }
     globaldragid = this.canvasID;
-    //    nx.highlightEditedObj(this.canvasID);
+    nx.highlightEditedObj(this.canvasID);
     showSettings();
     if (nx.isErasing) {
-      this.destroy();
+      this.destroy()
     }
   } else {
     this.click(e);
@@ -559,29 +562,21 @@ widget.prototype.preClick = function(e) {
 }
 
 widget.prototype.preMove = function(e) {
+  this.hasMoved = true;
   var newClickPos = domUtils.getCursorPosition(e, this.offset);
   this.deltaMove.y = newClickPos.y - this.clickPos.y;
   this.deltaMove.x = newClickPos.x - this.clickPos.x;
   this.clickPos = newClickPos;
   if (nx.editmode) {
     if (this.isBeingResized) {
-      
-      var newWid = ~~(this.clickPos.x/(canvasgridx/2))*(canvasgridx/2);
-      var newHgt = ~~(this.clickPos.y/(canvasgridy/2))*(canvasgridy/2);
-      
-      if (this.defaultSize.width == this.defaultSize.height) {
-        this.canvas.style.width = newWid+"px"
-        this.canvas.style.height = newWid+"px"
-      } else {
-        this.canvas.style.width = newWid+"px"
-        this.canvas.style.height = newHgt+"px"
-      }
-      
+      this.canvas.width = this.clickPos.x-2;
+      this.canvas.height = this.clickPos.y-2;
 
       this.canvas.height = window.getComputedStyle(this.canvas, null).getPropertyValue("height").replace("px","");
       this.canvas.width = window.getComputedStyle(this.canvas, null).getPropertyValue("width").replace("px","");
       this.height = parseInt(window.getComputedStyle(this.canvas, null).getPropertyValue("height").replace("px",""));
       this.width = parseInt(window.getComputedStyle(this.canvas, null).getPropertyValue("width").replace("px",""));
+    
       this.center = {
         x: this.width/2, 
         y: this.height/2
@@ -600,14 +595,12 @@ widget.prototype.preMove = function(e) {
       this.init();
       this.draw();
     } else if (this.isBeingDragged) {
+      hideElementCallbackCode();
       var matrixy = ~~((e.pageY-this.height/2)/canvasgridy)*canvasgridy;
       var matrixx = ~~((e.pageX-this.width/2)/canvasgridx)*canvasgridx;
       this.canvas.style.top = matrixy+"px";
       this.canvas.style.left = matrixx+"px";
-      this.offset = {
-        left: domUtils.findPosition(this.canvas).left,
-        top: domUtils.findPosition(this.canvas).top
-      };  
+      this.offset = nx.findPosition(this.canvas);  
     } 
   } else {
     this.move(e);
@@ -618,16 +611,28 @@ widget.prototype.preRelease = function(e) {
 
   document.removeEventListener("mousemove", this.preMove, false);
   document.removeEventListener("mouseup", this.preRelease, false);
-  this.clicked = false;
-  if (nx.editmode) {
-    this.isBeingDragged = false;
-  } else {
-    this.release();
-  }
   document.body.style.userSelect = "text";
   document.body.style.mozUserSelect = "text";
   document.body.style.webkitUserSelect = "text";
+  this.clicked = false;
+
+  if (nx.editmode) {
+    if (this.isBeingDragged) {
+      this.isBeingDragged = false;
+      document.body.style.cursor = "pointer";
+      this.canvas.style.cursor = "pointer"
+    }
+    if (this.isBeingResized) {
+      this.isBeingResized = false;
+    }
+    if (!this.hasMoved) {
+      showElementCallbackCode(this);
+    }
+  } else {
+    this.release();
+  }
 }
+
 
 widget.prototype.preTouch = function(e) {
   this.clickPos = domUtils.getTouchPosition(e, this.offset);

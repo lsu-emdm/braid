@@ -1,0 +1,44 @@
+<!doctype html>
+<html>
+<head>
+
+  	<title>BRAID: Web Audio Instruments</title>
+
+	<!-- standard includes of nexusUI and jquery -->
+	<link rel="shortcut icon" href="info/images/favicon.png" type="image/png" />
+	<script type="text/javascript" src="libraries/jquery.js"></script>
+	<script type="text/javascript" src="libraries/jquery-ui-1.8.2.custom.min.js"></script>
+	<script type="text/javascript" src="libraries/gibber.lib.js"></script> 
+	<script type="text/javascript" src="libraries/nexusUI.js"></script>
+<!--	<script type="text/javascript" src="libraries/FileSaver.js"></script>
+	<script type="text/javascript" src="libraries/qrcode.min.js"></script> -->
+
+
+	<script src="libraries/codemirror.js"></script>
+	<link rel="stylesheet" href="libraries/codemirror.css">
+	<script src="libraries/mode/javascript/javascript.js"></script>
+
+
+	<!-- Make mobile display non-scalable and fitting the viewport window -->
+	<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no, minimal-ui" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+
+
+</head>
+<body>
+
+<div id="guiglobalaudio"></div>
+
+<script>
+
+var myCodeMirror = CodeMirror(document.getElementById('guiglobalaudio'), {
+  value: "function myScript(){return 100;}\n",
+  mode:  "javascript"
+});
+
+</script>
+
+
+</body>	
+</html>
