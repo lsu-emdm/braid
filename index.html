@@ -2,13 +2,12 @@
 <html>
 	<head>
 
-	  	<title>BRAID: Browser Audio Interface Database</title>
+	  	<title>BRAID: Web Audio Instruments</title>
 
 		<!-- standard includes of nexusUI and jquery-->
 		<link rel="shortcut icon" href="info/images/favicon.png" type="image/png" />
 		<script type="text/javascript" src="libraries/jquery.js"></script>
 		<script type="text/javascript" src="libraries/jquery-ui-1.8.2.custom.min.js"></script>
-	<!--	<script type="text/javascript" src="libraries/gibberish.js"></script> -->
 		<script type="text/javascript" src="libraries/gibber.lib.js"></script>
 		<script type="text/javascript" src="libraries/nexusUI.js"></script>
 		<script type="text/javascript" src="libraries/FileSaver.js"></script>
@@ -24,7 +23,6 @@
 		<script>
 
 		 // init web audio
-		 	//var c = new window.AudioContext || new window.webkitAudioContext
 		 	window.AudioContext = window.AudioContext || window.webkitAudioContext;
     		var c = new window.AudioContext();
 
@@ -37,13 +35,23 @@
 			var freshpage = true;
 			var pageName = "bleepbloop";
 			var loadInPerformance = false;
+			var canvasgridx = 5;
+			var canvasgridy = 5;
 
 			nx.onload = function() {
+
+				nx.highlightEditedObj = function() {
+				 	$("canvas").css("border", "solid 1px #ccc");
+				  	$("canvas").css("z-index", 1);
+				  	$("#"+globaldragid).css("border", "solid 1px "+nx.colors.accent);
+				  	$("#"+globaldragid).css("z-index", 2);
+				}
+
 				nx.WAenv = true;
 				if (freshpage) {
 					nx.colorize(uicolor);
 				}
-				nx.setTransmissionProtocol("js");
+				nx.sendsTo("js");
 				nx.showLabels = false;
 
 				if (!nx.audioStrings) {
@@ -96,37 +104,23 @@
 
 			function createObject(data,mousey) {
 
+					console.log(data)
+
 					// if it has an nx attribute, store that in nxId
-				//	var nxId = $(this).html();
 					var nxId = data;
-					var elemCount = 0;
-					// find out how many of the same elem type have come before
-					// i.e. nx.elemTypeArr will look like [ dial, dial, toggle, toggle ]
-					// allowing you to count how many dials already exist on the page
-					// and give your new dial the appropriate index and id: dial3
-					for (j=0;j<nx.elemTypeArr.length;j++) {
-					/*	if (nx.elemTypeArr[j]==nxId) {
-							elemCount++;
-						} */
-						if (nx.nxObjects[j].canvasID.indexOf(nxId)!=-1) {
-							var proxyid = nx.nxObjects[j].canvasID
-							proxyid = proxyid.replace(nxId, "");
-							proxyid = parseInt(proxyid);
-							if (proxyid>elemCount) {
-								elemCount = proxyid;
-							}
-						}
-					}
-					// add your new nexus element type to the element list
-					nx.elemTypeArr.push(nxId);
-					var idNum = elemCount + 1;
-					var thisname = nxId + idNum;
+					
 					if(nxId) {
-						$("#nxui").append('<canvas id="'+thisname+'" nx="'+nxId+'" style="position:absolute;top:'+mousey+'px;right:165px;"></canvas>');
-						eval(thisname + " = new "+nxId+"('"+thisname+"', '../servers/php/lib/nexusOSCRelay.php', "+idNum+");");
-						eval(thisname+".init()");
-						globaldragid = thisname;
+
+						var widget = nx.add(nxId, {
+							x: 165,
+							y: mousey,
+							parent: 'nxui' 
+						})
+						globaldragid = widget.canvasID;
+						var thisname = widget.canvasID;
+						window[widget.canvasID] = widget;
 						showSettings();
+
 					}
 					nx.onload();
 					document.addEventListener("mousemove", dragobj, true);
@@ -147,50 +141,9 @@
 
 	 			Gibber.init();
 
-	 	/*		Gibberish.init()
-				Gibberish.Time.export()
-				Gibberish.Binops.export() */
 
-				
-
-
-			/*	Gibber.clear = function(callback) {
-					this.out ?	this.out.inputs.length=0 : null;
-					this.analysisUgens ? this.analysisUgens.length=0 : null;
-					this.sequencers ? this.sequencers.length=0 : null;
-					this.callbackArgs ? this.callbackArgs.length=2 : null;
-					this.callbackObjects ? this.callbackObjects.length=1 : null; 
-					this.out ? Gibberish.dirty(this.out) : null;
-
-					if (callback) { callback() };
-				} */
-
-			
-
-				// for possibly capturing cmd+c later...
-			/*	$(document).keydown(function (e) {
-				    if (e.metaKey == true) {
-				        alert('meta key yo!');
-				    }
-				});
-			*/
-
-				
-
-				$(".nxoptimg").mousedown(function(e) {
-					$("#sidebar").css("opacity",0.6);
-					document.body.style.userSelect = "none";
-					document.body.style.mozUserSelect = "none";
-					document.body.style.webkitUserSelect = "none";
-					createObject(e.currentTarget.title,e.pageY);
-				})
-
-				$(".nxbutt").mousedown(function(e) {
-					createObject($(this).html());
-					$(".overlay").hide(0);
-					hideHighlight();
-				})
 				$(document).mousedown(function(e) {
+					console.log("body")
 					if (e.srcElement != $("div.ace_content")[0] && e.srcElement != $("div.ace_content")[1]) {
 						hideElementCallbackCode();
 					}
@@ -200,7 +153,7 @@
 						hideHighlight();
 						startHighlighting(e);
 					}
-				});
+				}); 
 
 				$(document).mousemove(function(e) {
 					setHighlight(e);
@@ -228,6 +181,15 @@
 						massMove(ui);
 					}
 				});
+
+
+				/*
+				// for possibly capturing cmd+c later...
+				$(document).keydown(function (e) {
+				    if (e.metaKey == true) {
+				        alert('meta key yo!');
+				    }
+				}); */
 
 			})
 
@@ -294,8 +256,8 @@
 					width: parseInt($("#highlight").css("width")),
 					height: parseInt($("#highlight").css("height"))
 				}
-				for (var i=0;i<nx.nxObjects.length;i++) {
-					var widg = nx.nxObjects[i];
+				for (var i=0;i<nx.widgets.length;i++) {
+					var widg = nx.widgets[i];
 					if ( widg.offset.left>=hlDim.left && widg.offset.top>=hlDim.top && widg.offset.left+widg.width<=hlDim.left+hlDim.width && widg.offset.top+widg.height<=hlDim.top + hlDim.height) {
 						widg.hlstart = {
 							left: widg.offset.left,
@@ -380,11 +342,11 @@
 				+ '}\n'
 				+ '<\/script>\n';
 
-				for (var i=0;i<nx.nxObjects.length;i++) {
-					var thisobj = document.getElementById(nx.nxObjects[i].canvasID);
-					var thisosc = nx.nxObjects[i].oscName;
+				for (var i=0;i<nx.widgets.length;i++) {
+					var thisobj = document.getElementById(nx.widgets[i].canvasID);
+					var thisosc = nx.widgets[i].oscName;
 					thisosc = thisosc.replace("/","")
-					html += '<canvas id="'+thisosc+'" nx="'+thisobj.getAttribute("nx")+'" style="position:absolute;top:'+thisobj.style.top+';left:'+thisobj.style.left+';height:'+nx.nxObjects[i].height+'px;width:'+nx.nxObjects[i].width+'px"></canvas>\n'
+					html += '<canvas id="'+thisosc+'" nx="'+thisobj.getAttribute("nx")+'" style="position:absolute;top:'+thisobj.style.top+';left:'+thisobj.style.left+';height:'+nx.widgets[i].height+'px;width:'+nx.widgets[i].width+'px"></canvas>\n'
 				}
 
 				html += '</body>\n'
@@ -399,23 +361,6 @@
 
 
 			// mobile specific stuff
-
-
-			function openAdd() {
-				$("#add").show(0);
-			}
-
-			function openEdit() {
-				$("#edit").show(0);
-			}
-
-			function closeAdd() {
-				$("#add").hide(0);
-			}
-
-			function closeEdit() {
-				$("#edit").hide(0);
-			}
 
 			function perform() {
 				if (!nx.editmode) {
@@ -454,19 +399,19 @@
 					}
 				}
 
-				for (var i=0;i<nx.nxObjects.length;i++) {
+				for (var i=0;i<nx.widgets.length;i++) {
 
-					var objsettings = nx.nxObjects[i].settings ? nx.nxObjects[i].settings : "";
+					var objsettings = nx.widgets[i].settings ? nx.widgets[i].settings : "";
 					
 					jsonui.elements[i] = {
-						type: nx.nxObjects[i].getName(),
-						canvasID: nx.nxObjects[i].canvasID,
-						oscName: nx.nxObjects[i].oscName,
-						width: nx.nxObjects[i].width,
-						height: nx.nxObjects[i].height,
-						"top": nx.nxObjects[i].offset.top,
-						"left": nx.nxObjects[i].offset.left,
-						"audioString": nx.audioStrings[nx.nxObjects[i].canvasID],
+						type: nx.widgets[i].getName(),
+						canvasID: nx.widgets[i].canvasID,
+						oscName: nx.widgets[i].oscName,
+						width: nx.widgets[i].width,
+						height: nx.widgets[i].height,
+						"top": nx.widgets[i].offset.top,
+						"left": nx.widgets[i].offset.left,
+						"audioString": nx.audioStrings[nx.widgets[i].canvasID],
 						"settings": objsettings
 					}
 				}
@@ -490,7 +435,7 @@
 				var nxui = JSON.parse(uijson)
 
 				$("#nxui").html("");
-				nx.nxObjects = new Array();
+				nx.widgets = new Object();
 				nx.elemTypeArr = new Array();
 
 				// audio
@@ -513,7 +458,6 @@
 					nxui = nxui.elements;
 				}
 				//otherwise assume list is only elements
-				
 
 				for (var i=0;i<nxui.length;i++) {
 
@@ -531,10 +475,19 @@
 					var thisname = nxui[i].canvasID;
 					thisname = thisname.replace("/","");
 					if(nxId) {
-						$("#nxui").append('<canvas id="'+thisname+'" nx="'+nxId+'" style="position:absolute;top:'+nxui[i].top+'px;left:'+nxui[i].left+'px;" width='+nxui[i].width+'" height="'+nxui[i].height+'"></canvas>');
-						eval(thisname + " = new "+nxId+"('"+thisname+"', '../servers/nexusPHP/nexusOSCRelay.php', "+idNum+");");
-						eval(thisname+".init()");
-						eval(thisname+".oscName = '"+nxui[i].oscName+"'");
+
+						console.log(thisname)
+
+						nx.add(nxId, {
+							x: nxui[i].left,
+							y: nxui[i].top,
+							w: nxui[i].width,
+							h: nxui[i].height,
+							name: thisname,
+							parent: 'nxui' 
+						})
+
+						nx.widgets[thisname].oscName = nxui[i].oscName;
 						globaldragid = thisname;
 						$("#"+thisname).mousemove(function(e) {
 							if (nx.editmode && e.pageX>(parseInt(($(this).width()-20))+parseInt($(this).css("left").replace("px",""))) && e.pageY>(parseInt(($(this).height()-20))+parseInt($(this).css("top").replace("px","")))) {
@@ -736,7 +689,7 @@
 
 			}
 
-			loadDB(setUIDB);
+		//	loadDB(setUIDB);
 
 			function setUIDB(data) {
 				UIDB = data;
@@ -946,7 +899,7 @@
 
 			function newPage(justloaded) {
 				currentUI = false;
-				nx.nxObjects = new Array();
+				nx.widgets = new Object();
 				nx.elemTypeArr = new Array();
 				$("#nxui").html("");
 				nx.globalAudioString = defaultglobalaudio;
@@ -990,6 +943,15 @@
 				$("#title").val(name);
 			}
 
+			function makeWidget(title,e) {
+				console.log(e);
+				$("#sidebar").css("opacity",0.6);
+				document.body.style.userSelect = "none";
+				document.body.style.mozUserSelect = "none";
+				document.body.style.webkitUserSelect = "none";
+				createObject(title,e.pageY);
+
+			}
 
 		</script>
 	</head>
@@ -1330,7 +1292,7 @@
 				                     
 
 				for (var i=0;i<elembuttons.length;i++) {
-					var htmlstr = '<img class="nxoptimg" title="'+elembuttons[i]+'" draggable="false" src="images/'+elembuttons[i]+'.png">'
+					var htmlstr = '<img class="nxoptimg" title="'+elembuttons[i]+'" draggable="false" src="images/'+elembuttons[i]+'.png" onmousedown="makeWidget(this.title,event)">'
 					document.write(htmlstr);
 				}
 				document.write('<div style="clear:both"></div>');

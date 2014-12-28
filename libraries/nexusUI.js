@@ -537,7 +537,22 @@ widget.prototype.preClick = function(e) {
   this.clicked = true;
   this.deltaMove.x = 0;
   this.deltaMove.y = 0;
-  this.click(e);
+  if (nx.editmode) {
+    if (this.clickPos.x>this.width-20 && this.clickPos.y>this.height-20) {
+      this.isBeingResized = true;
+    } else {
+      this.isBeingResized = false;
+      this.isBeingDragged = true;
+    }
+    globaldragid = this.canvasID;
+    //    nx.highlightEditedObj(this.canvasID);
+    showSettings();
+    if (nx.isErasing) {
+      this.destroy();
+    }
+  } else {
+    this.click(e);
+  }
   document.body.style.userSelect = "none";
   document.body.style.mozUserSelect = "none";
   document.body.style.webkitUserSelect = "none";
@@ -548,7 +563,55 @@ widget.prototype.preMove = function(e) {
   this.deltaMove.y = newClickPos.y - this.clickPos.y;
   this.deltaMove.x = newClickPos.x - this.clickPos.x;
   this.clickPos = newClickPos;
-  this.move(e);
+  if (nx.editmode) {
+    if (this.isBeingResized) {
+      
+      var newWid = ~~(this.clickPos.x/(canvasgridx/2))*(canvasgridx/2);
+      var newHgt = ~~(this.clickPos.y/(canvasgridy/2))*(canvasgridy/2);
+      
+      if (this.defaultSize.width == this.defaultSize.height) {
+        this.canvas.style.width = newWid+"px"
+        this.canvas.style.height = newWid+"px"
+      } else {
+        this.canvas.style.width = newWid+"px"
+        this.canvas.style.height = newHgt+"px"
+      }
+      
+
+      this.canvas.height = window.getComputedStyle(this.canvas, null).getPropertyValue("height").replace("px","");
+      this.canvas.width = window.getComputedStyle(this.canvas, null).getPropertyValue("width").replace("px","");
+      this.height = parseInt(window.getComputedStyle(this.canvas, null).getPropertyValue("height").replace("px",""));
+      this.width = parseInt(window.getComputedStyle(this.canvas, null).getPropertyValue("width").replace("px",""));
+      this.center = {
+        x: this.width/2, 
+        y: this.height/2
+      };
+      this.corners = {
+          "TLx": 0,
+          "TLy": 0,
+          "TRx": this.width,
+          "TRy": 0,
+          "BRx": this.width,
+          "BRy": this.height,
+          "BLx": 0,
+          "BLy": this.height
+      };
+
+      this.init();
+      this.draw();
+    } else if (this.isBeingDragged) {
+      var matrixy = ~~((e.pageY-this.height/2)/canvasgridy)*canvasgridy;
+      var matrixx = ~~((e.pageX-this.width/2)/canvasgridx)*canvasgridx;
+      this.canvas.style.top = matrixy+"px";
+      this.canvas.style.left = matrixx+"px";
+      this.offset = {
+        left: domUtils.findPosition(this.canvas).left,
+        top: domUtils.findPosition(this.canvas).top
+      };  
+    } 
+  } else {
+    this.move(e);
+  }
 }
 
 widget.prototype.preRelease = function(e) {
@@ -556,7 +619,11 @@ widget.prototype.preRelease = function(e) {
   document.removeEventListener("mousemove", this.preMove, false);
   document.removeEventListener("mouseup", this.preRelease, false);
   this.clicked = false;
-  this.release();
+  if (nx.editmode) {
+    this.isBeingDragged = false;
+  } else {
+    this.release();
+  }
   document.body.style.userSelect = "text";
   document.body.style.mozUserSelect = "text";
   document.body.style.webkitUserSelect = "text";
