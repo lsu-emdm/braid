@@ -57,8 +57,16 @@
 			if (freshpage) {
 				nx.colorize(uicolor);
 			}
-			nx.sendsTo("js");
 			nx.showLabels = false;
+
+			//forward all event listeners to execute audio
+			for (var key in nx.widgets) {
+				with (nx.widgets[key]) {
+					on('*', function(data) {
+						nx.audioFunctions[canvasID](data)
+					})
+				}
+			} 
 
 			if (!nx.audioStrings) {
 				nx.audioStrings = new Object();
@@ -104,7 +112,7 @@
 
 				$(document).mousedown(function(e) {
 					console.log(e.srcElement);
-					if (e.srcElement != $("div.ace_editor")[0] && e.srcElement != $("div.ace_editor")[1]) {
+					if (e.srcElement == $("#nxui")[0]) {
 						hideElementCallbackCode();
 					}
 
@@ -675,7 +683,7 @@
 
 		}
 
-	//	loadDB(setUIDB);
+		loadDB(setUIDB);
 
 		function setUIDB(data) {
 			UIDB = data;
@@ -760,8 +768,8 @@
 		/* inline coding */
 
 		function saveCallback() {
-		////	var callback = callbackeditor.getValue()
-		////	nx.audioStrings[globaldragid] = callback.toString();
+			var callback = callbackeditor.getValue()
+			nx.audioStrings[globaldragid] = callback.toString();
 
 			try {
 				$("#guicallback").css("background-color","#222");
@@ -778,21 +786,16 @@
 		}
 
 
-
-		nx.allTraffic = function(obj, data) {
-			nx.audioFunctions[obj.canvasID](data)
-		}
-
 		function showGlobalAudioCode() {
-	/*	//	$("#guiglobalaudio").val(nx.globalAudioString);
+			//$("#guiglobalaudio").setValue(nx.globalAudioString);
 			globaleditor.setValue(nx.globalAudioString)
 
-			//To focus the ace editor
-			var session = globaleditor.getSession();
+		/*	//To focus the ace editor
+		//	var session = globaleditor.getSession();
 			//Get the number of lines
-			var count = session.getLength();
+		//	var count = session.getLength();
 			//Go to end of the last line
-			globaleditor.gotoLine(count, session.getLine(count-1).length);
+		//	globaleditor.gotoLine(count, session.getLine(count-1).length);
 			*/
             	
 		}
@@ -815,22 +818,23 @@
 
 
 
-		////	callbackeditor.setValue(nx.audioStrings[element.canvasID])
+			callbackeditor.setValue(nx.audioStrings[element.canvasID])
 
 
 
             var e = $('#roamingcode');
-            e.not(':animated').css({'opacity': 1 }).effect("scale", {origin:['middle','center'], from:{width:0,height:0}, percent: 100, direction: 'both', easing: "easeOutExpo" }, 300, function() {
+            e.not(':animated').css({'opacity': 0.9 }).effect("scale", {origin:['middle','center'], from:{width:0,height:0}, percent: 100, direction: 'both', easing: "easeOutExpo" }, 300, function() {
             	
 
 					//To focus the ace editor
 					callbackeditor.focus();
-					var session = callbackeditor.getSession();
+					callbackeditor.setCursor(500)
+				//	var session = callbackeditor.getSession();
 					//Get the number of lines
-					var count = session.getLength();
+				//	var count = session.getLength();
 					//Go to end of the last line
-					callbackeditor.gotoLine(count, session.getLine(count-1).length);
-					callbackeditor.focus();
+				//	callbackeditor.gotoLine(count, session.getLine(count-1).length);
+				//	callbackeditor.focus();
 
             });
 
@@ -1363,6 +1367,35 @@ callbackeditor.on("change", saveCallback)*/
 </script>
 
 
+
+<script>
+
+var globaleditor = CodeMirror(document.getElementById('guiglobalaudio'), {
+  value: "function myScript(){return 100;}\n",
+  mode:  "javascript",
+  lineNumbers:"true",
+  readOnly:false,
+  indentWithTabs:true,
+  indentUnit:2
+});
+
+var callbackeditor = CodeMirror(document.getElementById('guicallback'), {
+  value: "function myScript(){return 100;}\n",
+  mode:  "javascript",
+  lineNumbers:"true",
+  readOnly:false,
+  indentWithTabs:true,
+  indentUnit:2,
+  showCursorWhenSelecting: true
+});
+
+globaleditor.on('change', saveGlobalAudio)
+callbackeditor.on('change', saveCallback)
+
+
+</script>
+
+
 	<style> 
 
 		#codingarea {
@@ -1376,8 +1409,9 @@ callbackeditor.on("change", saveCallback)*/
 			max-width:920px;
 			display:block;
 			box-sizing:border-box;
-			padding-right:220px;
+			padding-right:0px;
 			z-index:2;
+			opacity:0.9;
 		}
 
 		#codingarea #L {
@@ -1409,6 +1443,7 @@ callbackeditor.on("change", saveCallback)*/
 			z-index:10;
 			width:430px;
 			height:150px;
+			opacity:0.9;
 		}
 
 		#codingarea #L .title, #R .title {
@@ -1427,9 +1462,9 @@ callbackeditor.on("change", saveCallback)*/
 			padding:0px;
 			border:none;
 			/*border-left:solid 1px #ccc;*/
-			background-color:#000;
+			background-color:#fff;
 			box-sizing:border-box;
-			padding:10px;
+			padding:0px;
 			font-family:lucida console, courier, sans-serif;
 			font-weight:100;
 			color:#eee;
@@ -1437,7 +1472,7 @@ callbackeditor.on("change", saveCallback)*/
 		}
 		#guicallback:focus, #guiglobalaudio:focus {
 		/*	outline:solid 1px #444; */
-			background-color:#333;
+			background-color:#fff;
 		}
 
 		#updateGlobalAudio, #clearGlobalAudio {
@@ -1539,15 +1574,6 @@ callbackeditor.on("change", saveCallback)*/
 		</div>
 
 
-
-<script>
-
-var myCodeMirror = CodeMirror(document.getElementById('guiglobalaudio'), {
-  value: "function myScript(){return 100;}\n",
-  mode:  "javascript"
-});
-
-</script>
 
 
 </body>	
