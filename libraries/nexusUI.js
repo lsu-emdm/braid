@@ -132,10 +132,10 @@ manager.prototype.add = function(type, args) {
            canv.style.top = args.y + "px";
         }
         if (args.w) {
-           canv.style.width = args.w + "px";
+           canv.width = args.w;
         }
         if (args.h) {
-           canv.style.height = args.h + "px";
+           canv.height = args.h;
         }
         if (args.parent) {
            var parent = document.getElementById(args.parent)
@@ -540,7 +540,7 @@ widget.prototype.preClick = function(e) {
   this.deltaMove.x = 0;
   this.deltaMove.y = 0;
   if (nx.editmode) {
-    if (this.clickPos.x>this.width-20 && this.clickPos.y>this.height-20 && this.type!="mouse") {
+    if (this.clickPos.x>this.width-20 && this.clickPos.y>this.height-20) {
       this.isBeingResized = true;
       hideElementCallbackCode();
     } else {
@@ -571,12 +571,18 @@ widget.prototype.preMove = function(e) {
     if (this.isBeingResized) {
       this.canvas.width = this.clickPos.x-2;
       this.canvas.height = this.clickPos.y-2;
+      this.width = this.clickPos.x-2;
+      this.height = this.clickPos.y-2;
+   //   this.canvas.style.width = this.clickPos.x-2+'px';
+   //   this.canvas.style.height = this.clickPos.y-2+'px';
+    //  console.log(this.canvas.width)
 
-      this.canvas.height = window.getComputedStyle(this.canvas, null).getPropertyValue("height").replace("px","");
-      this.canvas.width = window.getComputedStyle(this.canvas, null).getPropertyValue("width").replace("px","");
-      this.height = parseInt(window.getComputedStyle(this.canvas, null).getPropertyValue("height").replace("px",""));
-      this.width = parseInt(window.getComputedStyle(this.canvas, null).getPropertyValue("width").replace("px",""));
+   //   this.canvas.height = window.getComputedStyle(this.canvas, null).getPropertyValue("height").replace("px","");
+   //   this.canvas.width = window.getComputedStyle(this.canvas, null).getPropertyValue("width").replace("px","");
+   //   this.height = parseInt(window.getComputedStyle(this.canvas, null).getPropertyValue("height").replace("px",""));
+   //   this.width = parseInt(window.getComputedStyle(this.canvas, null).getPropertyValue("width").replace("px",""));
     
+      console.log(this.canvas.width)
       this.center = {
         x: this.width/2, 
         y: this.height/2
@@ -809,7 +815,6 @@ widget.prototype.set = function(data, transmit) {
     Remove the widget object, canvas, and all related event listeners from the document.
     */
 widget.prototype.destroy = function() {
-  nx.widgets[this.canvasID] = null;
   var type = nx.elemTypeArr.indexOf(this.getName())
   nx.elemTypeArr.splice(type,1)
 
@@ -824,7 +829,9 @@ widget.prototype.destroy = function() {
   var elemToKill = document.getElementById(this.canvasID)
   elemToKill.parentNode.removeChild(elemToKill);
 
-  delete window[this.canvasID];
+  var id = this.canvasID
+  delete nx.widgets[id];
+  delete window[id];
 }
 
 widget.prototype.wrapText = function(text, x, y, maxWidth, lineHeight) {

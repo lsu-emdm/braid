@@ -14,9 +14,11 @@
 	<script type="text/javascript" src="libraries/qrcode.min.js"></script>
 
 
+	<link rel="stylesheet" href="libraries/theme/neo.css">
 	<script src="libraries/codemirror.js"></script>
 	<link rel="stylesheet" href="libraries/codemirror.css">
 	<script src="libraries/mode/javascript/javascript.js"></script>
+	<script src="libraries/cm-activeline.js"></script>
 
 
 	<!-- Make mobile display non-scalable and fitting the viewport window -->
@@ -27,14 +29,9 @@
 
 	<script>
 
-	 // init web audio
 	 	window.AudioContext = window.AudioContext || window.webkitAudioContext;
 		var c = new window.AudioContext();
 
-
-		// Setup all of the UI objects you want to use.
-		// This occurs after the page has loaded all of the canvas objects to draw into.
-		
 		var globaldragid = false;
 		var uicolor = "#0af";
 		var freshpage = true;
@@ -63,13 +60,12 @@
 			for (var key in nx.widgets) {
 				with (nx.widgets[key]) {
 					on('*', function(data) {
-						nx.audioFunctions[canvasID](data)
+						audioFunction(data)
 					})
 				}
 			} 
 
-			if (!nx.audioStrings) {
-				nx.audioStrings = new Object();
+			if (!nx.globalAudioString) {
 				nx.globalAudioString = "";
 				newPage(true);
 			}
@@ -104,6 +100,7 @@
 					searchDB(uiname)
 					setTimeout("nx.editOff();", 500);
 				} else {
+					//FIXME -- move to nx.onload?
 					setTimeout('recallUILocally("lastnxstate")',100)
 					nx.editOn();
 				}
@@ -111,7 +108,7 @@
 				
 
 				$(document).mousedown(function(e) {
-					console.log(e.srcElement);
+					//console.log(e.srcElement);
 					if (e.srcElement == $("#nxui")[0]) {
 						hideElementCallbackCode();
 					}
@@ -143,7 +140,11 @@
 					nx.editOff();
 				});
 
-				$("#highlight").draggable();
+				$("#highlight").draggable({
+					drag: function(event,ui) {
+						massMove(ui)
+					}
+				});
 
 
 				/*
@@ -188,8 +189,8 @@
 					}
 				}) 
 			  	nx.highlightEditedObj();
-			  	nx.audioStrings[thisname] = ""
-			  	nx.audioFunctions[thisname] = new Function();
+			  	widget.audioString = ""
+			  	widget.audioFunction = new Function();
 		}
 
 
@@ -275,7 +276,7 @@
 
 		function massMove(e) {
 
-			console.log(highlightlist);
+			console.log(e);
 
 			var hlshift = {
 				left: e.position.left - e.originalPosition.left,
@@ -286,7 +287,7 @@
 				var widg = highlightList[i];
 				widg.canvas.style.left = widg.hlstart.left + hlshift.left + "px";
 				widg.canvas.style.top = widg.hlstart.top + hlshift.top + "px";
-				widg.offset = new nx.canvasOffset(nx.findPosition(widg.canvas).left,nx.findPosition(widg.canvas).top);
+				widg.offset = nx.findPosition(widg.canvas)
 			}
 
 		}
@@ -402,21 +403,28 @@
 				}
 			}
 
+			jsonui.settings.colors.background = $("#nxui").css('background-color');
+
 			for (var i in nx.widgets) {
 
-				var objsettings = nx.widgets[i].settings ? nx.widgets[i].settings : "";
+				if (nx.widgets[i]) {
+					var objsettings = nx.widgets[i].settings ? nx.widgets[i].settings : "";
+				}
+
+				var thistype = nx.widgets[i].canvasID;
+				thistype = thistype.replace(/[0-9]/g, '');
 				
-				jsonui.elements[i] = {
-					type: nx.widgets[i].getName(),
+				jsonui.elements.push({
+					type: thistype,
 					canvasID: nx.widgets[i].canvasID,
 					oscName: nx.widgets[i].oscName,
 					width: nx.widgets[i].width,
 					height: nx.widgets[i].height,
 					"top": nx.widgets[i].offset.top,
 					"left": nx.widgets[i].offset.left,
-					"audioString": nx.audioStrings[nx.widgets[i].canvasID],
+					"audioString": nx.widgets[i].audioString,
 					"settings": objsettings
-				}
+				})
 			}
 			return JSON.stringify(jsonui);
 		}
@@ -490,8 +498,8 @@
 							this.style.cursor = "pointer";
 						}
 					}) 
-					nx.audioStrings[thisname] = nxui[i].audioString;
-					nx.audioFunctions[thisname] = new Function("data", nxui[i].audioString);
+					widget.audioString = nxui[i].audioString;
+					widget.audioFunction = new Function("data", nxui[i].audioString);
 				}
 			}
 			nx.onload();
@@ -508,6 +516,14 @@
 		function renderSettings(settings) {
 			if (settings.colors) {
 				nx.colors = settings.colors;
+				$('#nxui').css('background-color', settings.colors.background)
+				$('#accentcolor').attr('value',settings.colors.accent)
+				$('#fillcolor').attr('value',settings.colors.fill)
+				$('#bordercolor').attr('value',settings.colors.border)
+				$('#whitecolor').attr('value',settings.colors.white)
+				$('#blackcolor').attr('value',settings.colors.black)
+				$('#bgcolor').attr('value',settings.colors.background)
+
 			}
 		}
 
@@ -706,12 +722,7 @@
 
 		}
 
-		nx.audioFunctions = new Object();
-
-
 		var currentUI = false;
-
-
 
 		function deleteFromDB() {
 			if (confirm("Are you sure you want to delete "+pageName+"?")) {
@@ -727,7 +738,6 @@
 		  				dataType: 'json',
 					    contentType: "application/json",
 				        success: function(data) {
-							console.log(2)
 				        	loadDB(setUIDB);
 				        },
 				        error: function(err) {
@@ -769,13 +779,14 @@
 
 		function saveCallback() {
 			var callback = callbackeditor.getValue()
-			nx.audioStrings[globaldragid] = callback.toString();
+			nx.widgets[globaldragid].audioString = callback.toString();
 
 			try {
-				$("#guicallback").css("background-color","#222");
-				nx.audioFunctions[globaldragid] = new Function("data", callback.toString());
+				$("#roamingcode .title").css("background-color","#ccc");
+				var cb 
+				nx.widgets[globaldragid].audioFunction = new Function("data", callback.toString());
 			} catch(e) {
-				$("#guicallback").css("background-color","#500");
+				$("#roamingcode .title").css("background-color","#f00");
 
 			} 
 		}
@@ -801,6 +812,10 @@
 		}
 
 		function showElementCallbackCode(element) {
+
+
+			callbackeditor.setValue(element.audioString)
+
 			var al = document.getElementById("arrow-left")
 			var ar = document.getElementById("arrow-right")
 			$("#roamingcode").css("top", element.offset.top + "px");
@@ -812,35 +827,16 @@
 				$("#roamingcode").css("left", element.offset.left - $("#roamingcode").width() + "px");
 				ar.style.display = "block";
 				al.style.display = "none";
-
 			}
 
 
+         	$('#roamingcode').show(0)
 
+			callbackeditor.focus();
+			callbackeditor.setCursor(500)
 
-			callbackeditor.setValue(nx.audioStrings[element.canvasID])
+          
 
-
-
-            var e = $('#roamingcode');
-            e.not(':animated').css({'opacity': 0.9 }).effect("scale", {origin:['middle','center'], from:{width:0,height:0}, percent: 100, direction: 'both', easing: "easeOutExpo" }, 300, function() {
-            	
-
-					//To focus the ace editor
-					callbackeditor.focus();
-					callbackeditor.setCursor(500)
-				//	var session = callbackeditor.getSession();
-					//Get the number of lines
-				//	var count = session.getLength();
-					//Go to end of the last line
-				//	callbackeditor.gotoLine(count, session.getLine(count-1).length);
-				//	callbackeditor.focus();
-
-            });
-
-
-
-		//	$("#guicallback").val(nx.audioStrings[element.canvasID]);
 			$("#perelement").html(element.oscName);
 			var dataprops = " &nbsp;[data] &nbsp;";
 			for (var key in element.val) {
@@ -854,7 +850,7 @@
 		}
 
 		function hideElementCallbackCode() {
-			$("#roamingcode").hide(0);
+			$("#roamingcode").css('top','-500px');
 		}
 
 		/* global */
@@ -924,7 +920,7 @@
 		}
 
 		function hideIDE() {
-			$("#codingarea").animate({"bottom": "-200px"}, 400);
+			$("#codingarea").animate({"bottom": "-250px"}, 400);
 		}
 
 		function setPageName(name) {
@@ -933,7 +929,6 @@
 		}
 
 		function makeWidget(title,e) {
-			console.log(e);
 			$("#sidebar").css("opacity",0.6);
 			document.body.style.userSelect = "none";
 			document.body.style.mozUserSelect = "none";
@@ -941,6 +936,19 @@
 			createObject(title,e.pageY,e.pageX);
 
 		}
+
+
+		var fullIDE = false;
+		function toggleFullIDE() {
+			if (!fullIDE) {
+				$("#codingarea").addClass('fullIDE')
+				fullIDE = true;
+			} else {
+				$("#codingarea").removeClass('fullIDE')
+				fullIDE = false;
+			}
+		}
+
 
 	</script>
 </head>
@@ -1153,6 +1161,8 @@
 		    user-select: text;
 		
 		}
+
+
 	</style>
 
 
@@ -1185,17 +1195,19 @@
 	<!--		<span style="font-size:30px;color:#aaa;font-family:trebuchet ms;margin-top:5px;margin-left:10px;float:left" onclick="toggleIDE()">&lt;&gt;</span> -->
 
 
-			<div style="display:inline;height:40px;float:right;padding-right:15px">
+			<div style="display:inline;height:20px;float:right;padding-right:15px">
 	
 				<a href="javascript:openQR()" style="color:#c3c3c3;line-height:30px;font-size:17px;text-decoration:none;font-weight:bold">QR</a>
 
 			</div>
 
 			<div id="colorcontrols">
-				<input type="color" value="#00aaff" id="accentcolor" name="accentcolor" oninput="nx.colorize(this.value);nx.colors.accent=this.value">
-				<input type="color" value="#cccccc" id="bordercolor" name="bordercolor" oninput="nx.colorize('border',this.value)">
-				<input type="color" value="#f7f7f7" id="fillcolor" name="fillcolor" oninput="nx.colorize('fill',this.value)">
-				<input type="color" value="#ffffff" id="bgcolor" name="bgcolor" oninput="$('#nxui').css('background-color',this.value)">
+				<input type="color" value="#00aaff" id="accentcolor" name="accentcolor" oninput="nx.colorize(this.value);nx.colors.accent=this.value" title="Accent Color">
+				<input type="color" value="#cccccc" id="bordercolor" name="bordercolor" oninput="nx.colorize('border',this.value)" title="Border Color">
+				<input type="color" value="#f7f7f7" id="fillcolor" name="fillcolor" oninput="nx.colorize('fill',this.value)" title="Fill Color">
+				<input type="color" value="#000000" id="blackcolor" name="blackcolor" oninput="nx.colorize('black',this.value)"  title="Black Aspects">
+				<input type="color" value="#ffffff" id="whitecolor" name="whitecolor" oninput="nx.colorize('white',this.value)"  title="White Aspects">
+				<input type="color" value="#ffffff" id="bgcolor" name="bgcolor" oninput="$('#nxui').css('background-color',this.value)" title="Background Color">
 			</div>
 
 			<style>
@@ -1334,7 +1346,10 @@
 
 	<div id="codingarea">
 		<div id="L">
-			<div class="title" onclick="toggleIDE()">global js</div>
+			<div class="title">
+				global js
+				<img src="images/fullscreen.png" onclick="toggleFullIDE()" style="height:15px;width:15px;right:2px;margin-top:0px;opacity:0.6;position:absolute">
+			</div>
 			<div id="guiglobalaudio"></div>
 			<button id="updateGlobalAudio" onclick="updateGlobalAudio()">Run</button>
 			<button id="clearGlobalAudio" onclick="clearGlobalAudio()">Reset</button>
@@ -1373,20 +1388,17 @@ callbackeditor.on("change", saveCallback)*/
 var globaleditor = CodeMirror(document.getElementById('guiglobalaudio'), {
   value: "function myScript(){return 100;}\n",
   mode:  "javascript",
-  lineNumbers:"true",
-  readOnly:false,
-  indentWithTabs:true,
-  indentUnit:2
+  styleActiveLine: "true",
+  lineNumbers:true,
+  theme: 'neo'
 });
 
 var callbackeditor = CodeMirror(document.getElementById('guicallback'), {
   value: "function myScript(){return 100;}\n",
   mode:  "javascript",
+  styleActiveLine: "true",
   lineNumbers:"true",
-  readOnly:false,
-  indentWithTabs:true,
-  indentUnit:2,
-  showCursorWhenSelecting: true
+  theme: 'neo'
 });
 
 globaleditor.on('change', saveGlobalAudio)
@@ -1404,9 +1416,8 @@ callbackeditor.on('change', saveCallback)
 			padding:0px;
 			bottom:-300px;
 			left:0px;
-			height:200px;
-			width:100%;
-			max-width:920px;
+			height:250px;
+			width:600px;
 			display:block;
 			box-sizing:border-box;
 			padding-right:0px;
@@ -1414,8 +1425,20 @@ callbackeditor.on('change', saveCallback)
 			opacity:0.9;
 		}
 
+		.fullIDE {
+			top: 0px;
+			width: 100% !important;
+			height: 100% !important;
+			z-index: 1000 !important;
+			margin: 0;
+			padding: 0;
+			opacity: 1 !important;
+			padding-right: 166px;
+			position:absolute !important;
+		}
+
 		#codingarea #L {
-			width:95%;
+			width:100%;
 			height:100%;
 			float:left;
 			background-color:#ddd;
@@ -1459,7 +1482,6 @@ callbackeditor.on('change', saveCallback)
 			height:90%;
 			outline:none;
 			font-size:10pt;
-			padding:0px;
 			border:none;
 			/*border-left:solid 1px #ccc;*/
 			background-color:#fff;

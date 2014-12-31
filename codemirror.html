@@ -28,13 +28,14 @@
 </head>
 <body>
 
-<div id="guiglobalaudio"></div>
+<textarea id="guiglobalaudio"></textarea>
 
 <script>
 
-var myCodeMirror = CodeMirror(document.getElementById('guiglobalaudio'), {
-  value: "function myScript(){return 100;}\n",
-  mode:  "javascript"
+var myCodeMirror = CodeMirror.fromTextArea(document.getElementById('guiglobalaudio'), {
+  styleActiveLine: true,
+  lineNumbers: true,
+  lineWrapping: true
 });
 
 </script>
