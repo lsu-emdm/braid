@@ -40,6 +40,8 @@
 		var canvasgridx = 5;
 		var canvasgridy = 5;
 
+		var allcode = '';
+
 
 		nx.onload = function() {
 
@@ -403,7 +405,7 @@
 				}
 			}
 
-			jsonui.settings.colors.background = $("#nxui").css('background-color');
+			jsonui.settings.colors.background = $("body").css('background-color');
 
 			for (var i in nx.widgets) {
 
@@ -516,7 +518,7 @@
 		function renderSettings(settings) {
 			if (settings.colors) {
 				nx.colors = settings.colors;
-				$('#nxui').css('background-color', settings.colors.background)
+				$('body').css('background-color', settings.colors.background)
 				$('#accentcolor').attr('value',settings.colors.accent)
 				$('#fillcolor').attr('value',settings.colors.fill)
 				$('#bordercolor').attr('value',settings.colors.border)
@@ -943,10 +945,57 @@
 			if (!fullIDE) {
 				$("#codingarea").addClass('fullIDE')
 				fullIDE = true;
+				showAllCode();
 			} else {
 				$("#codingarea").removeClass('fullIDE')
 				fullIDE = false;
+				hideAllCode();
 			}
+		}
+
+		function showAllCode() {
+			var ga = globaleditor.getValue()
+			nx.globalAudioString = ga.toString();
+
+			allcode = nx.globalAudioString;
+
+			allcode += '\n\n\n\n/*******************\n'
+			allcode += '* WIDGET CALLBACKS *\n'
+			allcode += '*******************/\n';
+
+			var sortedkeys = keys(nx.widgets).sort();
+
+			for (var i=0;i<sortedkeys.length;i++) {
+				var key = sortedkeys[i];
+				var id = nx.widgets[key].canvasID
+				allcode += '\n\n\n\n/******** '+id.toUpperCase()+' ********/ \n\n';
+				allcode += nx.widgets[key].audioString;
+			}
+
+			globaleditor.setValue(allcode);
+		}
+
+		function hideAllCode() {
+			var shortcode = nx.globalAudioString
+			shortcode = shortcode.substring(0,shortcode.indexOf('\n\n\n\n/*******************')-1);
+			nx.globalAudioString = shortcode;
+			globaleditor.setValue(nx.globalAudioString);
+		}
+
+		//sorts keys alphabetically
+		function keys(obj)
+		{
+		    var keys = [];
+
+		    for(var key in obj)
+		    {
+		        if(obj.hasOwnProperty(key))
+		        {
+		            keys.push(key);
+		        }
+		    }
+
+		    return keys;
 		}
 
 
@@ -958,6 +1007,9 @@
 		body {
 			margin:0px;
 			padding:0px;
+			width:100%;
+			height:100%;
+			background-color:#FFF;
 		}
 
 		.butt {
@@ -1018,8 +1070,8 @@
 
 		#nxui {
 			position:absolute;
-			width:100%;
-			height:100%;
+			width:300%;
+			height:300%;
 		}
 
 		/* sidebar */
@@ -1207,7 +1259,7 @@
 				<input type="color" value="#f7f7f7" id="fillcolor" name="fillcolor" oninput="nx.colorize('fill',this.value)" title="Fill Color">
 				<input type="color" value="#000000" id="blackcolor" name="blackcolor" oninput="nx.colorize('black',this.value)"  title="Black Aspects">
 				<input type="color" value="#ffffff" id="whitecolor" name="whitecolor" oninput="nx.colorize('white',this.value)"  title="White Aspects">
-				<input type="color" value="#ffffff" id="bgcolor" name="bgcolor" oninput="$('#nxui').css('background-color',this.value)" title="Background Color">
+				<input type="color" value="#ffffff" id="bgcolor" name="bgcolor" oninput="$('body').css('background-color',this.value)" title="Background Color">
 			</div>
 
 			<style>
@@ -1434,7 +1486,7 @@ callbackeditor.on('change', saveCallback)
 			padding: 0;
 			opacity: 1 !important;
 			padding-right: 166px;
-			position:absolute !important;
+			position:fixed !important;
 		}
 
 		#codingarea #L {
@@ -1475,6 +1527,10 @@ callbackeditor.on('change', saveCallback)
 			font-size:12px;
 			padding:3px 10px;
 			cursor:pointer;
+		}
+
+		#codingarea #L .title img:hover {
+			opacity:1 !important;
 		}
 
 		#guicallback, #guiglobalaudio {
