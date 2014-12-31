@@ -1,0 +1,142 @@
+<!doctype html>
+<html>
+<head>
+	<title>BRAID info</title>
+	<link rel="shortcut icon" href="info/images/favicon.png" type="image/png" />
+	<script type="text/javascript" src="libraries/jquery.js"></script>
+	<script type="text/javascript" src="libraries/nexusUI.js"></script>
+</head>
+<body>
+
+	<script>
+
+
+		nx.onload = function() {
+
+
+			var type = window.location.search
+			type = type.substring(1);
+
+			nx.add(type,{
+				parent: "widget",
+				name: "demo"
+			})
+
+			initDemo();
+
+			$("#wsel").val(type)
+
+		}
+
+		function showval(name,value) {
+			var valstring = "data."+name+" = "+value+"<br>"
+			$("#vals").append(valstring); 
+		}
+
+		function setNX(type) {
+
+			demo.destroy();
+			$("#vals").html('') 
+
+			nx.add(type,{
+				parent: "widget",
+				name: "demo"
+			})
+
+			initDemo();
+		}
+
+		function initDemo() {
+
+			demo.on('*',function(data) {
+				$("#vals").html('')
+				this.action = showval;
+			    if ((typeof data == "object") && (data !== null)) {
+			      for (var key in data) {
+			      	if (data[key].constructor === Array) {
+			          for (var key2 in data[key]) {
+			          	this.action(key+"["+key2+"]", data[key][key2])
+			          }
+			      	} else if ((typeof data[key] == "object") && (data[key] !== null)) {
+			          for (var key2 in data[key]) {
+			              this.action(key+"."+key2, data[key][key2])
+			          }
+			        } else {
+			            this.action(key, data[key])
+			        }
+			      }
+			    } else if (typeof data == "number" || typeof data == "string") {
+			        this.action('value', data)
+			    }
+				var newh = window.getComputedStyle($("#vals")[0]).height;
+				newh = parseInt(newh)
+				newh = newh ? nx.clip(newh,50,800)+200 : 200;
+				widh = $("#demo").height()
+				widh = parseInt(widh) + 100
+				console.log(newh, widh)
+				newh = Math.max(newh,widh);
+				window.resizeTo(window.innerWidth,newh)
+			})
+		}
+
+	</script>
+
+
+	<div id="title">
+		view data ouput of a 
+		<select id="wsel" onchange="setNX(this.value)">
+		  <option value="button">button</option>
+		  <option value="colors">colors</option>
+		  <option value="dial">dial</option>
+		  <option value="keyboard">keyboard</option>
+		  <option value="number">number</option>
+		  <option value="matrix">matrix</option>
+		  <option value="metro">metro</option>
+		  <option value="mouse">mouse</option>
+		  <option value="multislider">multislider</option>
+		  <option value="multitouch">multitouch</option>
+		  <option value="position">position</option>
+		  <option value="range">range</option>
+		  <option value="slider">slider</option>
+		  <option value="string">string</option>
+		  <option value="tilt">tilt</option>
+		  <option value="toggle">toggle</option>
+		  <option value="typewriter">typewriter</option>
+		  <option value="vinyl">vinyl</option>
+		</select>
+		by interacting
+	</div>
+
+	<div id="widget"></div>
+	<div id="vals"></div>
+
+	<style>
+
+		body {
+			padding:0px;
+			margin:0px;
+			background-color:#eee;
+			font-family:lucida sans;
+		}
+
+		#vals, #widget {
+			padding:20px;
+			background-color:#eee;
+			color:#333;
+			font-size:12pt;
+			float:left;
+		}
+
+		#title {
+			left:0px;
+			width:100%;
+			background-color:#ddd;
+			color:#333;
+			padding:6px 20px;
+			font-size:10pt;
+
+		}
+	</style>
+
+</body>
+</html>

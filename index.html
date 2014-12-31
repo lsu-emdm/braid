@@ -62,7 +62,14 @@
 			for (var key in nx.widgets) {
 				with (nx.widgets[key]) {
 					on('*', function(data) {
-						audioFunction(data)
+						try {
+							audioFunction(data)
+						} catch(e) {
+							console.log(e);
+							$("#errorbox").html(canvasID+": "+e.message+"    &nbsp;&nbsp; <img src='images/close-icon2.png'>")
+							$("#errorbox").css("padding","8px 30px 8px 8px")
+
+						} 
 					})
 				}
 			} 
@@ -92,6 +99,8 @@
 			    $("#locked").attr("src","images/locked.png");
 			    $("#sidebar").animate({"right": "-165px"}, 400);
 			    hideIDE();
+			    $("#errorbox").html("")
+				$("#errorbox").css("padding","0px")
 			}
 
 			if (freshpage) {
@@ -110,14 +119,46 @@
 				
 
 				$(document).mousedown(function(e) {
-					//console.log(e.srcElement);
-					if (e.srcElement == $("#nxui")[0]) {
-						hideElementCallbackCode();
-					}
+					if (nx.editmode) {
+						var cb = false;
+						var e1 = e.srcElement
+						for (var i=0;i<14;i++) {
+							if (e1) {
+								if (e1.id == "L" || e1.id == "R") {
+									cb = true;
+									break;
+								} else {
+									e1 = e1.parentNode;
+								}
+							} else {
+								break;
+							}
+						}
 
-					if (e.srcElement == $("#nxui")[0]) {
-						hideHighlight();
-						startHighlighting(e);
+						if (!cb) {
+							hideElementCallbackCode();
+						}
+
+
+					/*	var e1 = e.srcElement
+						var e2 = e1.parentNode
+						var e3 = e2.parentNode ? e2.parentNode : e.srcElement
+						var e4 = e3.parentNode ? e3.parentNode : e.srcElement
+						var e5 = e4.parentNode ? e4.parentNode : e.srcElement
+						e1 = e1.className ? e1.className.indexOf("CodeMirror") : -1;
+						e2 = e2.className ? e2.className.indexOf("CodeMirror") : -1;
+						e3 = e3.className ? e3.className.indexOf("CodeMirror") : -1;
+						e4 = e4.className ? e4.className.indexOf("CodeMirror") : -1;
+						e5 = e5.className ? e5.className.indexOf("CodeMirror") : -1;
+						
+						if (e1 == -1 && e2 == -1 && e3 == -1 && e4 == -1 && e5 == -1 && e.srcElement.id != "") {
+							hideElementCallbackCode();
+						} */
+
+						if (e.srcElement == $("#nxui")[0]) {
+							hideHighlight();
+							startHighlighting(e);
+						}
 					}
 				}); 
 
@@ -701,7 +742,7 @@
 
 		}
 
-		loadDB(setUIDB);
+	//	loadDB(setUIDB);
 
 		function setUIDB(data) {
 			UIDB = data;
@@ -813,6 +854,8 @@
             	
 		}
 
+		var cbleft;
+
 		function showElementCallbackCode(element) {
 
 
@@ -823,12 +866,18 @@
 			$("#roamingcode").css("top", element.offset.top + "px");
 			if (element.offset.left <= window.innerWidth/2) {
 				$("#roamingcode").css("left", element.offset.left + element.width + 3 + "px");
+				$("#R").css("right","auto");
+				$("#R").css("left","14px");
 				al.style.display = "block";
 				ar.style.display = "none";
+				cbleft = true;
 			} else {
 				$("#roamingcode").css("left", element.offset.left - $("#roamingcode").width() + "px");
+				$("#R").css("right","14px");
+				$("#R").css("left","auto");
 				ar.style.display = "block";
 				al.style.display = "none";
+				cbleft = false;
 			}
 
 
@@ -839,13 +888,13 @@
 
           
 
-			$("#perelement").html(element.oscName);
-			var dataprops = " &nbsp;[data] &nbsp;";
+			$("#perelement").html(element.canvasID+" &nbsp;&nbsp;");
+			var dataprops = " &nbsp;";
 			for (var key in element.val) {
 				dataprops += "data."+key+" &nbsp;"
 			}
 			if (dataprops.length >=100) { dataprops = dataprops.substring(0,100) + " ... "}
-			$("#dataprops").html("("+dataprops+")");
+			$("#dataprops").html(" ("+dataprops+")");
 
 
 
@@ -945,11 +994,31 @@
 			if (!fullIDE) {
 				$("#codingarea").addClass('fullIDE')
 				fullIDE = true;
-				showAllCode();
+			//	showAllCode();
 			} else {
 				$("#codingarea").removeClass('fullIDE')
 				fullIDE = false;
-				hideAllCode();
+			//	hideAllCode();
+			}
+		}
+
+		function toggleFullCallback() {
+			if (!fullIDE) {
+				$("#roamingcode").addClass('fullIDE')
+
+				$("#R").css("left","0px")
+				$("#R").css("right","0px")
+				fullIDE = true;
+			} else {
+				$("#roamingcode").removeClass('fullIDE')
+				if (cbleft) {
+					$("#R").css("left","14px")
+					$("#R").css("right","auto");
+				} else {	
+					$("#R").css("left","auto")
+					$("#R").css("right","14px");
+				}
+				fullIDE = false;
 			}
 		}
 
@@ -996,6 +1065,18 @@
 		    }
 
 		    return keys;
+		}
+
+		var infowin;
+		function infoWindow() {
+			var type = nx.widgets[globaldragid].canvasID;
+			type = type.replace(/[0-9]/g, '');
+			var dw = nx.widgets[globaldragid].defaultSize.width;
+			dw += 600;
+			var dh = nx.widgets[globaldragid].defaultSize.height;
+			dh = nx.clip(dh,250,600)
+			infowin = window.open("infowin.html?"+type, "infowin", "toolbar=no, scrollbars=no, resizable=no, top=0, left=0, width="+dw+", height="+dh);
+			infowin.focus();
 		}
 
 
@@ -1070,8 +1151,8 @@
 
 		#nxui {
 			position:absolute;
-			width:300%;
-			height:300%;
+			width:100%;
+			height:100%;
 		}
 
 		/* sidebar */
@@ -1341,7 +1422,7 @@
 
 			<script>
 
-			var elembuttons = [ "button", "dial", "toggle", "slider", "position", "range", "number", "keyboard", "tilt", "multislider", "multitouch", "envelope", "matrix", "mouse", "typewriter", "string", "colors", "pixels", "wheel", "vinyl", "joints", "banner" ]
+			var elembuttons = [ "button", "dial", "toggle", "slider", "position", "range", "number", "keyboard", "tilt", "multislider", "multitouch", "envelope", "matrix", "mouse", "typewriter", "string", "colors", "metro", "vinyl", "joints", "banner" ]
 			                     
 
 			for (var i=0;i<elembuttons.length;i++) {
@@ -1414,8 +1495,12 @@
 		<div id="arrow-left"></div>
 		<div id="arrow-right"></div>
 		<div id="R">
-			<div class="title"><span id="perelement"></span> callback
-			<span id="dataprops"></span>
+			<div class="title">
+				<span id="perelement"></span>
+				callback
+				<span id="dataprops"></span>
+				<img src="images/infowin.png" onclick="infoWindow()" style="height:22px;width:22px;right:25px;margin-top:-3px;opacity:0.9;position:absolute">
+				<img src="images/fullscreen.png" onclick="toggleFullCallback()" style="height:15px;width:15px;right:8px;margin-top:0px;opacity:0.6;position:absolute">
 			</div>
 			<div id="guicallback" onkeyup="saveCallback(this.value)"></div>
 		</div>
@@ -1478,14 +1563,14 @@ callbackeditor.on('change', saveCallback)
 		}
 
 		.fullIDE {
-			top: 0px;
+			top: 0px !important;
+			left: 0px !important;
 			width: 100% !important;
 			height: 100% !important;
 			z-index: 1000 !important;
 			margin: 0;
 			padding: 0;
 			opacity: 1 !important;
-			padding-right: 166px;
 			position:fixed !important;
 		}
 
@@ -1500,8 +1585,8 @@ callbackeditor.on('change', saveCallback)
 		#R {
 			top:0px;
 			left:14px;
-			width:400px;
-			height:150px;
+			width:100%;
+			height:100%;
 			background-color:#ddd;
 			position:absolute;
 			border-radius:10px;
@@ -1526,7 +1611,6 @@ callbackeditor.on('change', saveCallback)
 			font-weight:bold;
 			font-size:12px;
 			padding:3px 10px;
-			cursor:pointer;
 		}
 
 		#codingarea #L .title img:hover {
@@ -1587,7 +1671,7 @@ callbackeditor.on('change', saveCallback)
 			height: 0; 
 			border-top: 15px solid transparent;
 			border-bottom: 15px solid transparent; 
-			border-right:15px solid #2F3129; 
+			border-right:15px solid #ccc; 
 		}
 
 		#arrow-right {
@@ -1599,7 +1683,7 @@ callbackeditor.on('change', saveCallback)
 			height: 0; 
 			border-top: 16px solid transparent;
 			border-bottom: 16px solid transparent;	
-			border-left: 16px solid #111;
+			border-left: 16px solid #ccc;
 		}
 
 		.ace_gutter {
@@ -1650,6 +1734,33 @@ callbackeditor.on('change', saveCallback)
 
 
 		</div>
+
+
+		<div id="errorbox" onclick="this.innerHTML='',this.style.padding='0px'"></div>
+
+
+		<style>
+
+			#errorbox {
+				position:fixed;
+				bottom:0px;
+				left:0px;
+				background-color:#f44;
+				font-size:10pt;
+				color:white;
+				z-index:100;
+				opacity:1;
+				font-weight:bold;
+				max-width:50%;
+			}
+
+			#errorbox img {
+				position: absolute;
+				right: 5px;
+				top: 5px;
+			}
+
+		</style>
 
 
 
