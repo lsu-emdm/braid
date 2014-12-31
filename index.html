@@ -190,6 +190,22 @@
 				});
 
 
+
+				$(document).keydown(function(e){
+					console.log(e.keyCode);
+				    if (e.keyCode == 8 || e.keyCode == 46 ) {
+						e.preventDefault();
+			    		nx.widgets[globaldragid] ? nx.widgets[globaldragid].destroy() : null;
+			    		for (var i=0;i<highlightList.length;i++) {
+			    			console.log(highlightList[i]);
+			    			highlightList[i].destroy();
+				    	}
+						hideElementCallbackCode();
+						highlightList = new Array();
+				    }
+				}) 
+
+
 				/*
 				// for possibly capturing cmd+c later...
 				$(document).keydown(function (e) {
