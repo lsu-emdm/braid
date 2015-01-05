@@ -39,6 +39,7 @@
 		var loadInPerformance = false;
 		var canvasgridx = 5;
 		var canvasgridy = 5;
+		var keysdown = new Array();
 
 		var allcode = '';
 
@@ -65,9 +66,11 @@
 						try {
 							audioFunction(data)
 						} catch(e) {
-							console.log(e);
-							$("#errorbox").html(canvasID+": "+e.message+"    &nbsp;&nbsp; <img src='images/close-icon2.png'>")
-							$("#errorbox").css("padding","8px 30px 8px 8px")
+							if (!nx.editmode) {
+								console.log(e);
+								$("#errorbox").html(canvasID+": "+e.message+"    &nbsp;&nbsp; <img src='images/close-icon2.png'>")
+								$("#errorbox").css("padding","8px 30px 8px 8px")
+							}
 
 						} 
 					})
@@ -81,8 +84,8 @@
 
 			nx.editOn = function() {
 				nx.editmode = true;
-			  	$("canvas").css("border", "solid 1px #ccc");
-			  	$("body").css("background", "#eee");
+			  	$("canvas").css("border", "solid 0px #ccc");
+			//  	$("body").css("background", "#eee");
 			    $("#locked").attr("src","images/unlocked.png");
 			    $("#sidebar").animate({"right": "0px"}, 400);
 			    if (IDEon) {
@@ -95,7 +98,7 @@
 			  	nx.editmode = false;
 			  	document.body.style.cursor = "pointer";
 			  	$("canvas").css("border", "none");
-			  	$("body").css("background", "#fff");
+			//  	$("body").css("background", nx.colors.background);
 			    $("#locked").attr("src","images/locked.png");
 			    $("#sidebar").animate({"right": "-165px"}, 400);
 			    hideIDE();
@@ -139,22 +142,6 @@
 							hideElementCallbackCode();
 						}
 
-
-					/*	var e1 = e.srcElement
-						var e2 = e1.parentNode
-						var e3 = e2.parentNode ? e2.parentNode : e.srcElement
-						var e4 = e3.parentNode ? e3.parentNode : e.srcElement
-						var e5 = e4.parentNode ? e4.parentNode : e.srcElement
-						e1 = e1.className ? e1.className.indexOf("CodeMirror") : -1;
-						e2 = e2.className ? e2.className.indexOf("CodeMirror") : -1;
-						e3 = e3.className ? e3.className.indexOf("CodeMirror") : -1;
-						e4 = e4.className ? e4.className.indexOf("CodeMirror") : -1;
-						e5 = e5.className ? e5.className.indexOf("CodeMirror") : -1;
-						
-						if (e1 == -1 && e2 == -1 && e3 == -1 && e4 == -1 && e5 == -1 && e.srcElement.id != "") {
-							hideElementCallbackCode();
-						} */
-
 						if (e.srcElement == $("#nxui")[0]) {
 							hideHighlight();
 							startHighlighting(e);
@@ -193,17 +180,27 @@
 
 				$(document).keydown(function(e){
 					console.log(e.keyCode);
-				    if (e.keyCode == 8 || e.keyCode == 46 ) {
+					keysdown[e.keyCode] = true
+					if (e.keyCode == 69 && keysdown[91]) {
+						if (nx.editmode) {
+							nx.editOff()
+						} else {
+							nx.editOn()
+						}
+					}
+				 /*   if (e.keyCode == 8 || e.keyCode == 46 ) {
 						e.preventDefault();
 			    		nx.widgets[globaldragid] ? nx.widgets[globaldragid].destroy() : null;
 			    		for (var i=0;i<highlightList.length;i++) {
-			    			console.log(highlightList[i]);
 			    			highlightList[i].destroy();
 				    	}
 						hideElementCallbackCode();
 						highlightList = new Array();
-				    }
+				    } */
 				}) 
+				$(document).keyup(function(e){
+					keysdown[e.keyCode] = false
+				});
 
 
 				/*
@@ -235,7 +232,6 @@
 					var thisname = widget.canvasID;
 					window[widget.canvasID] = widget;
 					showSettings();
-					console.log(widget.canvasID)
 
 				}
 				nx.onload();
@@ -335,8 +331,6 @@
 
 		function massMove(e) {
 
-			console.log(e);
-
 			var hlshift = {
 				left: e.position.left - e.originalPosition.left,
 				top: e.position.top - e.originalPosition.top
@@ -366,7 +360,12 @@
 		}
 
 		function deleteObject() {
-			window[globaldragid].destroy();
+			nx.widgets[globaldragid] ? nx.widgets[globaldragid].destroy() : null;
+    		for (var i=0;i<highlightList.length;i++) {
+    			highlightList[i].destroy();
+	    	}
+			hideElementCallbackCode();
+			highlightList = new Array();
 		}
 
 		function setoscname(val) {
@@ -447,7 +446,6 @@
 
 		function storeUI(uiname) {
 			localStorage[uiname] = makeUIjson();
-		//	findUIs();
 
 		}
 
@@ -461,8 +459,6 @@
 					"timestamp": new Date()
 				}
 			}
-
-			jsonui.settings.colors.background = $("body").css('background-color');
 
 			for (var i in nx.widgets) {
 
@@ -564,7 +560,7 @@
 			nx.onload();
 			showSettings();
 			$("#edit").hide(0);
-			$("canvas").css("border", "solid 1px #ccc");
+			$("canvas").css("border", "solid 0px #ccc");
 
 			if (loadInPerformance) {
 				updateGlobalAudio();
@@ -758,7 +754,7 @@
 
 		}
 
-	//	loadDB(setUIDB);
+		loadDB(setUIDB);
 
 		function setUIDB(data) {
 			UIDB = data;
@@ -789,7 +785,6 @@
 				hideSearchbar()
 
 				if (currentUI) {
-					console.log(currentUI.url)
 					$.ajax({
 				        url: currentUI.url,
 				        type: 'DELETE',
@@ -904,13 +899,13 @@
 
           
 
-			$("#perelement").html(element.canvasID+" &nbsp;&nbsp;");
-			var dataprops = " &nbsp;";
+			$("#perelement").html(element.canvasID);
+			var dataprops = " &nbsp;&nbsp;";
 			for (var key in element.val) {
 				dataprops += "data."+key+" &nbsp;"
 			}
 			if (dataprops.length >=100) { dataprops = dataprops.substring(0,100) + " ... "}
-			$("#dataprops").html(" ("+dataprops+")");
+			$("#dataprops").html(dataprops);
 
 
 
@@ -957,8 +952,8 @@
 			nx.globalAudioString = defaultglobalaudio;
 			showGlobalAudioCode();
 			updateGlobalAudio()
-		////	callbackeditor.setValue("");
 			setPageName("Untitled")
+			nx.colors.background = "#DDDDDD"
 			if (!justloaded) {
 			//	clearGlobalAudio();
 			} else {
@@ -1106,7 +1101,7 @@
 			padding:0px;
 			width:100%;
 			height:100%;
-			background-color:#FFF;
+			background-color:#ddd;
 		}
 
 		.butt {
@@ -1356,7 +1351,7 @@
 				<input type="color" value="#f7f7f7" id="fillcolor" name="fillcolor" oninput="nx.colorize('fill',this.value)" title="Fill Color">
 				<input type="color" value="#000000" id="blackcolor" name="blackcolor" oninput="nx.colorize('black',this.value)"  title="Black Aspects">
 				<input type="color" value="#ffffff" id="whitecolor" name="whitecolor" oninput="nx.colorize('white',this.value)"  title="White Aspects">
-				<input type="color" value="#ffffff" id="bgcolor" name="bgcolor" oninput="$('body').css('background-color',this.value)" title="Background Color">
+				<input type="color" value="#ffffff" id="bgcolor" name="bgcolor" oninput="$('body').css('background-color',this.value);nx.colors.background=this.value" title="Background Color">
 			</div>
 
 			<style>
@@ -1513,7 +1508,7 @@
 		<div id="R">
 			<div class="title">
 				<span id="perelement"></span>
-				callback
+				:
 				<span id="dataprops"></span>
 				<img src="images/infowin.png" onclick="infoWindow()" style="height:22px;width:22px;right:25px;margin-top:-3px;opacity:0.9;position:absolute">
 				<img src="images/fullscreen.png" onclick="toggleFullCallback()" style="height:15px;width:15px;right:8px;margin-top:0px;opacity:0.6;position:absolute">
@@ -1676,7 +1671,7 @@ callbackeditor.on('change', saveCallback)
 		}
 
 		#perelement {
-			color:#06a;
+			color:#000;
 		}
 
 		#arrow-left {
@@ -1687,7 +1682,7 @@ callbackeditor.on('change', saveCallback)
 			height: 0; 
 			border-top: 15px solid transparent;
 			border-bottom: 15px solid transparent; 
-			border-right:15px solid #ccc; 
+			border-right:15px solid #fff; 
 		}
 
 		#arrow-right {
@@ -1699,7 +1694,7 @@ callbackeditor.on('change', saveCallback)
 			height: 0; 
 			border-top: 16px solid transparent;
 			border-bottom: 16px solid transparent;	
-			border-left: 16px solid #ccc;
+			border-left: 16px solid #fff;
 		}
 
 		.ace_gutter {

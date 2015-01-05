@@ -1,0 +1,29 @@
+<html>
+<head>
+<script>
+
+var Something = function() {
+	this.test = "active";
+	this.log = function(e) {
+		console.log(e.pageX);
+	}
+	window.addEventListener('keydown',this.log.bind(this),false);
+	this.destroy = function() {
+		window.removeEventListener('keydown',this.log.bind(this),false);
+	}
+}
+
+var thing = new Something();
+
+
+
+
+
+</script>
+</head>
+<body>
+ah
+</body>
+
+
+</html>
