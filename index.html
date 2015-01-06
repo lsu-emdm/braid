@@ -13,6 +13,7 @@
 	<script type="text/javascript" src="libraries/FileSaver.js"></script>
 	<script type="text/javascript" src="libraries/qrcode.min.js"></script>
 
+	<link rel="manifest" href="manifest.json">
 
 	<link rel="stylesheet" href="libraries/theme/neo.css">
 	<script src="libraries/codemirror.js"></script>
@@ -91,6 +92,7 @@
 			    if (IDEon) {
 			   		showIDE();
 			    }
+				$("#mobileguide").css("display","block")
 			}
 
 			nx.editOff = function() {
@@ -104,6 +106,11 @@
 			    hideIDE();
 			    $("#errorbox").html("")
 				$("#errorbox").css("padding","0px")
+				$("#mobileguide").css("display","none")
+				if (nx.isTouchDevice) {
+					$("#locked").css("display","none")
+				}
+				$("#mobileguide").css("display","none")
 			}
 
 			if (freshpage) {
@@ -112,13 +119,19 @@
 					var uiname = location.search;
 					uiname = uiname.slice(1);
 					searchDB(uiname)
-					setTimeout("nx.editOff();", 500);
+					nx.editOff();
 				} else {
 					//FIXME -- move to nx.onload?
 					setTimeout('recallUILocally("lastnxstate")',100)
+					if (!nx.isTouchDevice)
 					nx.editOn();
 				}
 				freshpage = false;
+
+				if (nx.isTouchDevice) {
+					$("#locked").hide(0)
+					nx.editOff()
+				}
 				
 
 				$(document).mousedown(function(e) {
@@ -969,11 +982,11 @@
 			if (IDEon) {
 				IDEon = false;
 				hideIDE();
-				nx.sendsTo("ajax");
+			//	nx.sendsTo("ajax");
 			} else {
 				IDEon = true;
 				showIDE();
-				nx.sendsTo("js");
+			//	nx.sendsTo("js");
 			}
 		}
 
@@ -1091,6 +1104,37 @@
 		}
 
 
+		var devices = {
+			"phone_landscape": {
+				name: "Avg Phone (Landscape)",
+				width: 568,
+				height: 320
+			},
+			"phone_portrait": {
+				name: "Avg Phone (Portrait)",
+				width: 320,
+				height: 568
+			},
+			"tablet_landscape": {
+				name: "Avg Tablet (Landscape)",
+				width: 1024,
+				height: 768
+			},
+			"tablet_portrait": {
+				name: "Avg Tablet (Portrait)",
+				width: 768,
+				height: 1024
+			},
+
+		}
+		function setGuide(key) {
+			var guide = devices[key]
+			$("#mobileguide").css("width", guide.width)
+			$("#mobileguide").css("height", guide.height)
+			$("#mobileguide #tip").html(guide.name)
+		}
+
+
 	</script>
 </head>
 <body>
@@ -1171,7 +1215,7 @@
 		#sidebar {
 			position:fixed;
 			top:0px;
-			right:0px;
+			right:-165px;
 			height:100%;
 			background-color:#fafafa;
 			border-right:solid 1px #ccc;
@@ -1310,8 +1354,8 @@
 	</style>
 
 
-	<div style="width:568px;height:320px;border:dashed 1px #aaa;position:absolute;top:0px;left:0px;">
-		<div style="background-color:#eee;font-size:8pt;font-family:gill sans;color:#bbb;top:0px;right:0px;padding:3px;position:absolute;">iPhone 5</div>
+	<div id="mobileguide" style="width:568px;height:320px;border:dashed 1px #fff;position:absolute;top:0px;left:0px;">
+		<div id="tip" style="background-color:#eee;font-size:8pt;font-family:gill sans;color:#bbb;top:0px;right:0px;padding:3px;position:absolute;">iPhone 5</div>
 	</div>
 
 	<div id="nxui"></div>
@@ -1369,6 +1413,14 @@
 				left:0px;
 			}
 			</style>
+
+			<select style="height:25px;width:100px;font-size:8pt;border:solid 0px;padding:1px 10px" onchange="setGuide(this.value)">
+				<option value="phone_landscape">Phone (Landscape)</option>
+				<option value="phone_portrait">Phone (Portrait)</option>
+				<option value="tablet_landscape">Tablet (Landscape)</option>
+				<option value="tablet_portrait">Tablet (Portrait)</option>
+			</select>
+			<!-- setGuide -->
 
 		<script>
 
@@ -1433,7 +1485,7 @@
 
 			<script>
 
-			var elembuttons = [ "button", "dial", "toggle", "slider", "position", "range", "number", "keyboard", "tilt", "multislider", "multitouch", "envelope", "matrix", "mouse", "typewriter", "string", "colors", "metro", "vinyl", "joints", "banner" ]
+			var elembuttons = [ "button", "dial", "toggle", "slider", "position", "range", "number", "keyboard", "tilt", "multislider", "multitouch", "envelope", "matrix", "mouse", "typewriter", "string", "colors", "metro", "vinyl", "joints", "remix", "banner" ]
 			                     
 
 			for (var i=0;i<elembuttons.length;i++) {
@@ -1652,22 +1704,22 @@ callbackeditor.on('change', saveCallback)
 			position:absolute;
 			bottom:3px;
 			right:70px;
-			background-color:#000;
-			color:#ccc;
+			background-color:#ddd;
+			color:#333;
 			border:solid 1px #ccc;
 			font-size:9pt;
 			padding:4px 12px;
 			outline:none;
 			cursor:pointer;
+			z-index:50;
 		}
 		 #clearGlobalAudio {
 		 	right:3px;
 		 }
 
-		#updateGlobalAudio:hover {
-			border:solid 1px #fff;
-			color:#fff;
-
+		
+		#updateGlobalAudio:hover, #clearGlobalAudio:hover {
+			background-color:#bbb;
 		}
 
 		#perelement {
