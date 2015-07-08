@@ -36,7 +36,7 @@ window.onload = function() {
   nx.startPulse();
   
 };
-},{"./lib/core/manager":2,"./lib/utils/dom":4,"./lib/utils/drawing":5,"./lib/utils/math":6,"extend":48}],2:[function(require,module,exports){
+},{"./lib/core/manager":2,"./lib/utils/dom":4,"./lib/utils/drawing":5,"./lib/utils/math":6,"extend":40}],2:[function(require,module,exports){
 
 /** 
   @title NexusUI API
@@ -63,10 +63,10 @@ var manager = module.exports = function() {
 */
 
   EventEmitter.apply(this)
-
-  /**@property {object} widgets Contains all interface widgets (e.g. nx.widgets.dial1, nx.widgets.toggle1) */
   this.widgets = new Object();
 
+  /**  @property {integer} throttlePeriod Throttle time in ms (for nx.throttle). */
+  this.throttlePeriod = 20;
   this.elemTypeArr = new Array();
   this.aniItems = new Array();
   /**  @property {boolean} showLabels Whether or not to draw an automatic text label on each interface component. */
@@ -104,14 +104,6 @@ var manager = module.exports = function() {
 
   /**  @property {boolean} globalWidgets Whether or not to instantiate a global variable for each widget (i.e. button1). Defaults to true. Designers of other softwares who wish to keep nexusUI entirely encapsulated in the nx object may set this property to false. In that case, all widgets are accessible in nx.widgets */
   this.globalWidgets = true;
-
-  this.font = "gill sans";
-  this.fontSize = 14;
-  this.fontWeight = "bold";
-
-
-  /**  @property {integer} throttlePeriod Throttle time in ms (for nx.throttle). */
-  this.throttlePeriod = 20;
 }
 
 util.inherits(manager, EventEmitter)
@@ -141,23 +133,14 @@ manager.prototype.add = function(type, args) {
         }
         if (args.w) {
            canv.style.width = args.w;
-           if (typeof args.w != "string")
-             canv.width = args.w;
+           canv.width = args.w;
         }
         if (args.h) {
            canv.style.height = args.h;
-           if (typeof args.h != "string")
-             canv.height = args.h;
+           canv.height = args.h;
         }
         if (args.parent) {
-          var parent;
-          if (typeof args.parent === "string") {
-            parent = document.getElementById(args.parent);
-          } else if (args.parent instanceof HTMLElement){
-            parent = args.parent;
-          } else if (args.parent instanceof jQuery){
-            parent = args.parent[0];            
-          }
+           var parent = document.getElementById(args.parent)
         }
         if (args.name) {
            canv.id = args.name
@@ -177,11 +160,6 @@ Transform an existing canvas into a NexusUI widget.
 @param {string} [type] (Optional.) Specify which type of widget the canvas will become. If no type is given, the canvas must have an nx attribute with a valid widget type.
 */
 manager.prototype.transform = function(canvas, type) {
-  for (var key in nx.widgets) {
-    if (nx.widgets[key].canvasID == canvas.id) {
-      return;
-    }
-  }
   if (type) {
     var nxType = type;
   } else {
@@ -219,12 +197,9 @@ manager.prototype.transform = function(canvas, type) {
     try {
       var newObj = new (require('../widgets')[nxType])(canvas.id);
     } catch (err) {
-      console.log("creation of " + nxType + " failed");
-      return;
+      console.log(nxType);
     }
   }
-
-  newObj.type = nxType;
 
   this.widgets[newObj.canvasID] = newObj;
   if (this.globalWidgets) {
@@ -294,10 +269,10 @@ manager.prototype.setThrottlePeriod = function(newThrottle) {
 /**  @property {object} colors The interface's color settings. Set with nx.colorize(). */
 manager.prototype.colors = { 
   "accent": "#ff5500", 
-  "fill": "#eeeeee", 
-  "border": "#bbbbbb",
-  "black": "#000000",
-  "white": "#FFFFFF"
+  "fill": "#eee", 
+  "border": "#bbb",
+  "black": "#000",
+  "white": "#FFF"
 };
   
 /**  @method startPulse 
@@ -334,21 +309,19 @@ manager.prototype.removeAni = function(fn) {
 manager.prototype.addStylesheet = function() {
   var htmlstr = '<style>'
     + 'select {'
+    + 'background: transparent;'
+    + '-webkit-appearance: none;'
     + 'width: 150px;'
     + 'padding: 5px 5px;'
     + 'font-size: 16px;'
-    + 'color:#666666;'
-    + 'border: solid 0px #CCC;'
-    + 'border-radius: 5;'
+    + 'color:#888;'
+    + 'border: solid 2px #CCC;'
+    + 'border-radius: 6;'
     + 'outline: black;'
     + 'cursor:pointer;'
-    + 'background-color:#EEE;'
+    + 'background-color:#F7F7F7;'
     + 'font-family:gill sans;'
     + '}'
-    + ''
-    + 'input[type=text]::-moz-selection { background: transparent; }'
-    + 'input[type=text]::selection { background: transparent; }'   
-    + 'input[type=text]::-webkit-selection { background: transparent; }' 
     + ''
     + 'canvas { '
     + 'cursor:pointer;'
@@ -359,19 +332,9 @@ manager.prototype.addStylesheet = function() {
     + '-moz-box-sizing:border-box;'
     + '-webkit-box-sizing:border-box;'
     + '}'
-    + ''
-    + 'input[type=text] { '
-    + 'cursor:pointer;'
-    + 'border-radius:5px;'
-    + 'moz-border-radius:5px;'
-    + 'webkit-border-radius:5px;'
-    + 'box-sizing:border-box;'
-    + '-moz-box-sizing:border-box;'
-    + '-webkit-box-sizing:border-box;'
-    + '}'
     + '</style>';
 
-  document.head.innerHTML = document.head.innerHTML + htmlstr
+    document.head.innerHTML =  document.head.innerHTML + htmlstr;
 }
 
 /**  @method setViewport
@@ -400,25 +363,14 @@ manager.prototype.setLabels = function(onoff) {
   }
 }
 
-manager.prototype.setProp = function(prop,val) {
-  if (prop && val) {
-    nx[prop] = val;
-    for (var key in this.widgets) {
-      this.widgets[key][prop] = val;
-      this.widgets[key].draw()
-    } 
-  }
-}
 
 manager.prototype.blockMove = function(e) {
-  //console.log(e.target)
   if (e.target.tagName == 'CANVAS') {
-    // || e.target.tagName == 'INPUT'
      e.preventDefault();
-     e.stopPropogation ? e.stopPropogation() : false;
+  //   e.stopPropogation();
   }
 }
-},{"../utils/timing":7,"../utils/transmit":8,"../widgets":18,"events":43,"util":47}],3:[function(require,module,exports){
+},{"../utils/timing":7,"../utils/transmit":8,"../widgets":15,"events":35,"util":39}],3:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 var domUtils = require('../utils/dom');
@@ -453,18 +405,10 @@ var widget = module.exports = function (target) {
     newcanv.id = target;
     document.body.appendChild(newcanv)
   }
-  /**
-   * @property {string} type The type of NexusUI widget (i.e. "dial", "toggle", "slider"). Set automatically at creation.
-   */
-  this.type = undefined;
   /**  @property {DOM element} canvas The widget's HTML5 canvas */
   this.canvas = document.getElementById(target);
   /**  @property {HTML5 drawing context} context The canvas's drawing context */
   this.context = this.canvas.getContext("2d");
-
-  this.checkPercentage();
-  this.canvas.className = this.canvas.className ? this.canvas.className += " nx" : "nx"
-
   this.canvas.height = window.getComputedStyle(document.getElementById(target), null).getPropertyValue("height").replace("px","");
   this.canvas.width = window.getComputedStyle(document.getElementById(target), null).getPropertyValue("width").replace("px","");
   /**  @property {integer} height The widget canvas's computed height in pixels */
@@ -476,21 +420,11 @@ var widget = module.exports = function (target) {
     this.defaultSize = { width: 100, height: 100 };
   }
   if (this.width==300 && this.height==150) {
-    this.canvas.width = this.defaultSize.width*2;
-    this.canvas.height = this.defaultSize.height*2;
+    this.canvas.width = this.defaultSize.width;
+    this.canvas.height = this.defaultSize.height;
     this.width = this.defaultSize.width;
     this.height = this.defaultSize.height;
-  } else {
-  	var proxyw = this.width;
-  	var proxyh = this.height;
-  	this.canvas.width = proxyw*2;
-    this.canvas.height = proxyh*2;
-    this.width = proxyw;
-    this.height = proxyh;
   }
-  this.canvas.style.width = this.canvas.width/2+"px";
-  this.canvas.style.height = this.canvas.height/2+"px";
-  this.context.scale(2,2)
   /**  @property {object} offset The widget's computed offset from the top left of the document. (Has properties 'top' and 'left', both in pixels) */
   this.offset = domUtils.findPosition(this.canvas);
   /**  @property {object} center The center of the widget's canvas. A 100x100 widget would have a center at 50x50. (Has properties 'x' and 'y', both in pixels) */
@@ -568,13 +502,6 @@ var widget = module.exports = function (target) {
     this.canvas.addEventListener('mousedown', this.preClick, false);
   }
 
-  this.fontSize = nx.fontSize;
-  this.fontWeight = nx.fontWeight;
-  this.font = nx.font;
-
-  this.clickCB = false;
-  this.releaseCB = false;
-
 }
 util.inherits(widget, EventEmitter)
 
@@ -620,6 +547,7 @@ widget.prototype.getOffset = function() {
 }
 
 widget.prototype.preClick = function(e) {
+  this.hasMoved = false;
   this.offset = domUtils.findPosition(this.canvas)
   document.addEventListener("mousemove", this.preMove, false);
   document.addEventListener("mouseup", this.preRelease, false);
@@ -627,7 +555,6 @@ widget.prototype.preClick = function(e) {
   this.clicked = true;
   this.deltaMove.x = 0;
   this.deltaMove.y = 0;
-  this.hasMoved = false;
   if (nx.editmode) {
     if (this.clickPos.x>this.width-20 && this.clickPos.y>this.height-20) {
       this.isBeingResized = true;
@@ -645,36 +572,32 @@ widget.prototype.preClick = function(e) {
   } else {
     this.click(e);
   }
-  this.clickCB ? this.clickCB() : null;
   document.body.style.userSelect = "none";
   document.body.style.mozUserSelect = "none";
   document.body.style.webkitUserSelect = "none";
 }
 
 widget.prototype.preMove = function(e) {
+  this.hasMoved = true;
   var newClickPos = domUtils.getCursorPosition(e, this.offset);
   this.deltaMove.y = newClickPos.y - this.clickPos.y;
   this.deltaMove.x = newClickPos.x - this.clickPos.x;
   this.clickPos = newClickPos;
-  this.hasMoved = true;
   if (nx.editmode) {
     if (this.isBeingResized) {
       if (this.lockResize) {
           var sizex = Math.max(this.clickPos.x+2,this.clickPos.y+2)
           var sizey = Math.max(this.clickPos.x+2,this.clickPos.y+2)
+        console.log(sizex, sizey)
       } else {
           var sizex = this.clickPos.x-2
           var sizey = this.clickPos.y-2
       }
 
-      this.canvas.style.width = sizex + "px";
-      this.canvas.style.height = sizey + "px";
-      this.canvas.width = sizex*2;
-      this.canvas.height = sizey*2;
+      this.canvas.width = sizex;
+      this.canvas.height = sizey;
       this.width = sizex;
       this.height = sizey;
-      
-      this.context.scale(2,2)
 
       this.center = {
         x: this.width/2, 
@@ -710,7 +633,11 @@ widget.prototype.preRelease = function(e) {
 
   document.removeEventListener("mousemove", this.preMove, false);
   document.removeEventListener("mouseup", this.preRelease, false);
+  document.body.style.userSelect = "text";
+  document.body.style.mozUserSelect = "text";
+  document.body.style.webkitUserSelect = "text";
   this.clicked = false;
+
   if (nx.editmode) {
     if (this.isBeingDragged) {
       this.isBeingDragged = false;
@@ -726,10 +653,6 @@ widget.prototype.preRelease = function(e) {
   } else {
     this.release();
   }
-  this.releaseCB ? this.releaseCB() : null;
-  document.body.style.userSelect = "text";
-  document.body.style.mozUserSelect = "text";
-  document.body.style.webkitUserSelect = "text";
 }
 
 widget.prototype.preTouch = function(e) {
@@ -737,7 +660,6 @@ widget.prototype.preTouch = function(e) {
   this.clicked = true;
   this.deltaMove.x = 0;
   this.deltaMove.y = 0;
-  this.hasMoved = false;
   this.touch(e);
 }
 
@@ -747,7 +669,6 @@ widget.prototype.preTouchMove = function(e) {
     this.deltaMove.y = newClickPos.y - this.clickPos.y;
     this.deltaMove.x = newClickPos.x - this.clickPos.x;
     this.clickPos = newClickPos;
-    this.hasMoved = true;
     this.touchMove(e);
   }
 }
@@ -852,9 +773,14 @@ widget.prototype.showCursor = function() {
 
 // allow us to get the constructor function name programatically
 //i.e. if element is a dial, this function will return "dial"
-//deprecated
-widget.prototype.getName = function() {
-  return "deprecated -- use widget.type instead"
+
+/**  @method getName
+    Returns the widget's constructor function name (i.e. "dial")
+    */
+widget.prototype.getName = function() { 
+  var funcNameRegex = /function (.{1,})\(/;
+  var results = (funcNameRegex).exec((this).constructor.toString());
+  return (results && results.length > 1) ? results[1] : "";
 }
 
 /** @method set
@@ -896,7 +822,7 @@ widget.prototype.set = function(data, transmit) {
   this.draw();
 
   if (transmit) {
-    this.transmit(this.val)
+    nx.transmit(this.val)
   }
 }
 
@@ -979,71 +905,7 @@ widget.prototype.saveCanv = function() {
   var data = this.canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
   window.location.href = data
 }
-
-widget.prototype.setFont = function() {
-  with (this.context) {
-        textAlign = "center";
-        textBaseline = "middle";
-        font = this.fontWeight+" "+this.fontSize+"px "+this.font;
-        fillStyle = this.colors.black;
-        globalAlpha = 0.7;
-  }
-}
-
-
-/* Percentage width support */
-
-
-widget.prototype.checkPercentage = function() {
-  var wstr = this.canvas.style.width;
-  var hstr = this.canvas.style.height;
-  if (wstr.indexOf("%") >= 0 || hstr.indexOf("%") >= 0) {
-    this.percent = {
-      w: (wstr.indexOf("%") >= 0) ? wstr.replace("%","") : false,
-      h: (hstr.indexOf("%") >= 0) ? hstr.replace("%","") : false
-    }
-    this.stretch();
-  }
-}
-
-widget.prototype.stretch = function() {
-  window.addEventListener("resize", function(e) {
-    if (this.percent.w) {
-      var newWidth = window.getComputedStyle(this.canvas.parentNode, null).getPropertyValue("width").replace("px","");
-      newWidth *= this.percent.w/100
-    } else {
-      var newWidth = false;
-    }
-    if (this.percent.h) {
-      var newHeight = window.getComputedStyle(this.canvas.parentNode, null).getPropertyValue("height").replace("px","");
-      newHeight *= this.percent.h/100 
-    } else {
-      var newHeight = false;
-    }
-    this.resize(newWidth,newHeight);
-  }.bind(this))
-}
-
-widget.prototype.resize = function(w,h) {
-
-  this.canvas.width = w ? w*2 : this.canvas.width;
-  this.canvas.height = h ? h*2 : this.canvas.height;
-  this.width =  w ? w : this.width;
-  this.height = h ? h : this.height;
-  this.canvas.style.width = this.width+"px";
-  this.canvas.style.height = this.height+"px";
-  this.context.scale(2,2)
-
-  this.center = {
-    x: this.width/2,
-    y: this.height/2
-  };
-
-  this.init();
-  this.draw();
-  
-}
-},{"../utils/dom":4,"../utils/drawing":5,"../utils/timing":7,"../utils/transmit":8,"events":43,"util":47}],4:[function(require,module,exports){
+},{"../utils/dom":4,"../utils/drawing":5,"../utils/timing":7,"../utils/transmit":8,"events":35,"util":39}],4:[function(require,module,exports){
 
 /** @class utils 
   Shared utility functions. These functions are exposed as methods of nx in NexusUI projects, i.e. .mtof() here can be accessed in your project with nx.mtof().
@@ -1332,61 +1194,6 @@ exports.random = function(scale) {
 exports.interp = function(loc,min,max) {
   return loc * (max - min) + min;  
 }
-
-exports.lphistory = {}
-
-
-exports.lp = function(tag,value,limit) {
-
-  if (!this.lphistory[tag]) {
-    this.lphistory[tag] = []
-  }
-
-  var total = 0;
-
-  this.lphistory[tag].push(value)
-
-  if (this.lphistory[tag].length>limit) {
-    this.lphistory[tag].splice(0,1)
-  }
-
-  for (var i=0;i<this.lphistory[tag].length;i++) {
-    total += this.lphistory[tag][i]
-  }
-
-  var newvalue = total / this.lphistory[tag].length;
-
-  return newvalue;
-}
-
-
-exports.lp2 = function(value,limit) {
-
-  var total = 0;
-  for (var i=0;i<this.lphistory.length;i++) {
-    total += this.lphistory[i]
-  }
-  total += value;
-
-  var newvalue = total / ( this.lphistory.length + 1 )
-
-  this.lphistory.push(newvalue)
-
-  if (this.lphistory.length>limit) {
-    this.lphistory.splice(0,1)
-  }
-
-  return newvalue;
-}
-
-
-exports.lp3 = function(value,pvalue,limit) {
-
-  var total = value + pvalue * limit;
-  newvalue = total / (limit + 1)
-
-  return newvalue;
-}
 },{}],7:[function(require,module,exports){
 
 
@@ -1556,7 +1363,7 @@ banner.prototype.draw = function() {
 		fillRect(15,0,this.width-30,this.height-10);
 		
 		fillStyle = this.colors.white;
-		font = this.fontWeight + " " +this.height/5+"px "+this.font;
+		font = this.height/5+"px gill sans";
 		textAlign = "center";
 		fillText(this.message1, this.width/2, this.height/3.3);
 		fillText(this.message2, this.width/2, (this.height/3.3)*2);
@@ -1583,10 +1390,9 @@ banner.prototype.click = function() {
 		window.location = this.link;
 	}
 }
-},{"../core/widget":3,"util":47}],10:[function(require,module,exports){
+},{"../core/widget":3,"util":39}],10:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
-var drawing = require('../utils/drawing');
 
 var button = module.exports = function(target) {
 
@@ -1638,7 +1444,7 @@ var button = module.exports = function(target) {
 	button1.mode = "aftertouch" 
 	```
 	*/
-	this.mode = "node";
+	this.mode = "toggle";
 
 	this.lockResize = true;
 
@@ -1654,101 +1460,86 @@ var button = module.exports = function(target) {
 util.inherits(button, widget);
 
 button.prototype.init = function() {
-  this.center = {
-    x: this.width/2,
-    y: this.height/2
-  }
-  this.radius = (Math.min(this.center.x, this.center.y)-this.lineWidth/2)
-  this.draw();
+	this.width = this.canvas.width;
+	this.height = this.canvas.height;
+	this.draw();
 }
 
 button.prototype.draw = function() {
+	this.erase();
+	
+	with (this.context) {
+		
+		if (this.image !== null) {
+			// Image Button
+			if (!this.val.press) {
+				// Draw Image if not touched
+				drawImage(this.image, 0, 0);
+			} else {
+				if (!this.imageTouch) {
 
-  this.erase();
-  
-  with (this.context) {
-    
-    if (this.image !== null) {
-      // Image Button
-      if (!this.val.press) {
-        // Draw Image if not touched
-        drawImage(this.image, 0, 0);
-      } else {
-        if (!this.imageTouch) {
+					drawImage(this.image, 0, 0);
 
-          drawImage(this.image, 0, 0);
+					// No touch image, apply highlighting
+					globalAlpha = 0.5;
+					fillStyle = this.colors.accent;
+					fillRect (0, 0, this.width, this.height);
+					globalAlpha = 1;
+					
+				} else {
+					// Draw Touch Image
+					drawImage(this.imageTouch, 0, 0);
+				}
+			}
+			
+		} else {
+	
+			// Regular Button
+			if (!this.val.press) {
+				fillStyle = this.colors.fill;
+			} else if (this.val.press) {
+				fillStyle = this.colors.accent;
+			}
+		
+			beginPath();
+				arc(this.center.x, this.center.y, (Math.min(this.center.x, this.center.y)-this.lineWidth/2), 0, Math.PI*2, true);
+				fill();	  
+			closePath();
 
-          // No touch image, apply highlighting
-          globalAlpha = 0.5;
-          fillStyle = this.colors.accent;
-          fillRect (0, 0, this.width, this.height);
-          globalAlpha = 1;
-          
-        } else {
-          // Draw Touch Image
-          drawImage(this.imageTouch, 0, 0);
-        }
-      }
-      
-    } else {
-  
-      // Regular Button
-      if (!this.val.press) {
-        fillStyle = this.colors.fill;
-      } else if (this.val.press) {
-        fillStyle = this.colors.accent;
-      }
+			if (this.val.press && this.mode=="node") {
+				globalAlpha = 0.2;
+				fillStyle = this.colors.white;
+				beginPath();
+					arc(this.val.x, this.val.y, (Math.min(this.center.x, this.center.y)/2), 0, Math.PI*2, true);
+					fill();	  
+				closePath();
 
-      beginPath();
-        arc(this.center.x, this.center.y, this.radius, 0, Math.PI*2, true);
-        fill();   
-      closePath();
+				globalAlpha = 1;
+			}
+		}
 
-      if (this.val.press && this.mode=="node") {
-
-    /*    var x = nx.clip(this.clickPos.x,this.width*.2,this.width/1.3)
-        var y = nx.clip(this.clickPos.y,this.height*.2,this.height/1.3)
-
-        var gradient = this.context.createRadialGradient(x,y,this.width/6,this.center.x,this.center.y,this.radius*1.3);
-        gradient.addColorStop(0,this.colors.accent);
-        gradient.addColorStop(1,"white");
-
-        strokeStyle = gradient;
-        lineWidth = this.width/20;
-
-        beginPath()
-          arc(this.center.x, this.center.y, this.radius-this.width/40, 0, Math.PI*2, true);
-          stroke()
-        closePath()
-*/
-      } 
-    }
-
-    this.drawLabel();
-    
-  }
+		this.drawLabel();
+		
+	}
 }
 
-
 button.prototype.click = function(e) {
-	if (drawing.isInside(this.clickPos,{x: this.center.x-this.radius, y:this.center.y-this.radius, w:this.radius*2, h:this.radius*2})) {
-		this.val["press"] = 1;
-		if (this.mode=="node") {
-			this.val["x"] = this.clickPos.x/this.width;
-			this.val["y"] = this.clickPos.y/this.height;
-		}
-		this.transmit(this.val);
-		this.draw();
+	this.val["press"] = 1;
+	if (this.mode=="node") {
+		this.val["x"] = this.clickPos.x;
+		this.val["y"] = this.clickPos.y;
 	}
+	this.transmit(this.val);
+	this.draw();
 }
 
 button.prototype.move = function () {
 	// use to track movement on the button
 	if (this.mode=="node") {
-		this.val["x"] = this.clickPos.x/this.width;
-		this.val["y"] = this.clickPos.y/this.height;
-		this.subval["x"] = this.clickPos.x/this.width;
-		this.subval["y"] = this.clickPos.y/this.height;
+		this.val["x"] = this.clickPos.x;
+		this.val["y"] = this.clickPos.y;
+		this.subval["x"] = this.clickPos.x;
+		this.subval["y"] = this.clickPos.y;
 		this.transmit(this.subval);
 		this.draw();
 	}
@@ -1786,7 +1577,7 @@ button.prototype.setTouchImage = function(image) {
 	this.imageTouch.onload = this.draw();
 	this.imageTouch.src = image;
 }
-},{"../core/widget":3,"../utils/drawing":5,"util":47}],11:[function(require,module,exports){
+},{"../core/widget":3,"util":39}],11:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 
@@ -1798,13 +1589,24 @@ var widget = require('../core/widget');
 	```
 	<canvas nx="colors" style="margin-left:25px"></canvas>
 */
+
+
+// this object is poor when it is resized
+// because it calculates hsl based on
+// hsl max values / width of object...
 				
 var colors = module.exports = function (target) {
 	
 	this.defaultSize = { width: 100, height: 100 };	
 	widget.call(this, target);
-
-	/* new tactic */
+	
+	//define unique attributes
+	this.color_width = this.canvas.width - this.lineWidth*2;
+	this.color_height = this.canvas.height - this.lineWidth*2;
+	this.color_table = new Array();
+	/** @property {float} saturation Saturation percentage of the color picker (0-100)*/
+	this.saturation = 100;
+	this.color = [0,0,0];
 
 	this.init();
 	
@@ -1813,33 +1615,44 @@ util.inherits(colors, widget);
 
 colors.prototype.init = function() {
 
-  this.gradient1 = this.context.createLinearGradient(0,0,this.width,0)
-  this.gradient1.addColorStop(0, '#F00'); 
-  this.gradient1.addColorStop(0.17, '#FF0'); 
-  this.gradient1.addColorStop(0.34, '#0F0'); 
-  this.gradient1.addColorStop(0.51, '#0FF'); 
-  this.gradient1.addColorStop(0.68, '#00F'); 
-  this.gradient1.addColorStop(0.85, '#F0F'); 
-  this.gradient1.addColorStop(1, '#F00'); 
-
-  this.gradient2 = this.context.createLinearGradient(0,0,0,this.height)
-  this.gradient2.addColorStop(0, 'rgba(0,0,0,255)'); 
-  this.gradient2.addColorStop(0.49, 'rgba(0,0,0,0)'); 
-  this.gradient2.addColorStop(0.51, 'rgba(255,255,255,0)'); 
-  this.gradient2.addColorStop(0.95, 'rgba(255,255,255,255)'); 
-  
-
+	this.color_width = this.canvas.width - this.lineWidth*2;
+	this.color_height = this.canvas.height - this.lineWidth*2;
+	this.color_table = new Array();
+	this.color = [0,0,0];
+	
+	//prep color picker
+ 	this.color_table = new Array(this.color_width);
+	for (var i=0;i<this.color_table.length;i++) {
+		this.color_table[i] = new Array(this.color_height);
+	}
+	
+	
+	for (var i=0;i<this.color_width;i++) {
+		h = Math.round((240/this.color_width)*i);
+		for (var j=0;j<this.color_height;j++) {
+				s = this.saturation;
+				l = Math.round((100/this.color_height)*j);
+			this.color_table[i][j] = [h, s, l];
+		}
+	}
 	this.draw();
 }
 
 colors.prototype.draw = function() {
 	this.erase();
-
-	with(this.context) {
-		fillStyle = this.gradient1;
-		fillRect(0,0,this.width,this.height)
-		fillStyle = this.gradient2;
-		fillRect(0,0,this.width,this.height)
+	for (var i=0;i<this.color_width;i++) {
+		for (var j=0;j<this.color_height;j++) {
+			hue = this.color_table[i][j][0];
+			sat = this.color_table[i][j][1];
+			lum = this.color_table[i][j][2];
+			with(this.context) {
+					beginPath();
+					fillStyle = 'hsl('+hue+', '+sat+'%, '+lum+'%)'
+					fillRect(i+this.lineWidth,j+this.lineWidth, 240/this.color_width, 240/this.color_height);
+					fill();
+					closePath();
+			}
+		}
 	}
 
 	this.drawLabel();
@@ -1847,15 +1660,16 @@ colors.prototype.draw = function() {
 
 colors.prototype.drawColor = function() {
 	with(this.context) {
-		fillStyle = "rgb("+this.val.r+","+this.val.g+","+this.val.b+")"
-		fillRect(0,this.height * 0.95,this.width,this.height* 0.05)
 
+		fillStyle = "rgb("+this.val.r+","+this.val.g+","+this.val.b+")"
+		fillRect(2,this.height-2,this.width-2,2)
+		
 	}
 }
 
 colors.prototype.click = function(e) {
-	if (this.clickPos.x > 0 && this.clickPos.y > 0 && this.clickPos.x < this.width && this.clickPos.y < this.height) {
-		var imgData = this.context.getImageData(this.clickPos.x*2,this.clickPos.y*2,1,1);
+	if (this.clickPos.x > 0 && this.clickPos.y > 2 && this.clickPos.x < this.width && this.clickPos.y < this.height) {
+		var imgData = this.context.getImageData(this.clickPos.x,this.clickPos.y,1,1);
 	} else {
 		return;
 	}
@@ -1873,6 +1687,7 @@ colors.prototype.click = function(e) {
 	}
 	```
 	*/
+	
 
 	this.val = {
 		r: imgData.data[0], 
@@ -1887,7 +1702,7 @@ colors.prototype.click = function(e) {
 colors.prototype.move = function(e) {
 	this.click(e);
 }
-},{"../core/widget":3,"util":47}],12:[function(require,module,exports){
+},{"../core/widget":3,"util":39}],12:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 
@@ -1960,88 +1775,7 @@ comment.prototype.draw = function() {
 	}
 	this.wrapText(this.val.text, 6, 3+this.size, this.width-6, this.size);
 }
-},{"../core/widget":3,"util":47}],13:[function(require,module,exports){
-var math = require('../utils/math')
-var util = require('util');
-var widget = require('../core/widget');
-
-/** 
-	@class crossfade      
-	Crossfade for panning or mixing
-	```html
-	<canvas nx="crossfade"></canvas>
-	```
-	<canvas nx="crossfade" style="margin-left:25px"></canvas>
-*/
-
-var crossfade = module.exports = function (target) {
-	this.defaultSize = { width: 100, height: 30 };
-	widget.call(this, target);
-
-	/** @property {object}  val   
-		| &nbsp; | data
-		| --- | ---
-		| *value* | Crossfade value (float -1 to 1)
-	*/
-	this.val.value = 0.7
-
-	this.label = "";
-
-	this.init();
-}
-util.inherits(crossfade, widget);
-
-crossfade.prototype.init = function() {
-
-	if (this.canvas.getAttribute("label")!=null) {
-		this.label = this.canvas.getAttribute("label");
-	}
-
-	this.draw();
-}
-
-crossfade.prototype.draw = function() {
-	
-	this.erase();
-		
-	with (this.context) {
-
-		fillStyle = this.colors.fill;
-		fillRect(0,0,this.width,this.height);
-
-		
-		if (nx.showLabels) {
-			this.setFont();
-			fillText(this.label, this.width/2, this.height/2);
-			globalAlpha = 1;
-		
-		}
-
-		var x1 = this.width/2;
-		var y1 = 0;
-		var x2 = (this.val.value/2)*this.width;
-		var y2 = this.height;
-	   
-	
-		fillStyle = this.colors.accent;
-		fillRect(x1,y1,x2,y2);
-
-		fillRect(x1-1,y1,2,y2);
-
-	}
-}
-
-crossfade.prototype.click = function() {
-	this.move();
-}
-
-crossfade.prototype.move = function() {
-	var x = nx.scale(this.clickPos.x/this.width,0,1,-1,1)
-	this.val.value = math.prune(math.clip(x, -1, 1),3)
-	this.draw();
-	this.transmit(this.val);
-}
-},{"../core/widget":3,"../utils/math":6,"util":47}],14:[function(require,module,exports){
+},{"../core/widget":3,"util":39}],13:[function(require,module,exports){
 var math = require('../utils/math');
 var util = require('util');
 var widget = require('../core/widget');
@@ -2072,9 +1806,9 @@ var dial = module.exports = function(target) {
 	this.val = {
 		value: 0
 	}
-	/** @property {float}  responsivity    How much the dial increments on drag. Default: 0.004<br>
+	/** @property {float}  responsivity    How much the dial increments on drag. Default: 0.005<br>
 	*/
-	this.responsivity = 0.004;
+	this.responsivity = 0.005;
 	
 	this.aniStart = 0;
 	this.aniStop = 1;
@@ -2090,15 +1824,15 @@ util.inherits(dial, widget);
 
 dial.prototype.init = function() {
 
-	this.circleSize = (Math.min(this.center.x, this.center.y));
-	this.handleLength = this.circleSize;
-	this.mindim = Math.min(this.width,this.height)
+	this.circleSize = (Math.min(this.center.x, this.center.y)-this.lineWidth);
+	this.handleLength = this.circleSize+this.lineWidth;
 	
-	if (this.mindim<101) {
+	if (this.width<101) {
+		this.handleLength--;
 		this.handleLength--;
 	}
 
-	if (this.mindim<101 || this.mindim<101) {
+	if (this.width<101 || this.width<101) {
 		this.accentWidth = this.lineWidth * 1;
 	} else {
 		this.accentWidth = this.lineWidth * 2;
@@ -2122,14 +1856,14 @@ dial.prototype.draw = function() {
 		
 		//draw main circle
 		beginPath();
-			arc(this.center.x, this.center.y, this.circleSize-1, 0, Math.PI*2, true);
+			arc(this.center.x, this.center.y, this.circleSize, 0, Math.PI*2, true);
 			fill();
 		closePath();
 
 		//draw color fill
 		beginPath();
 			lineWidth = this.accentWidth;
-			arc(this.center.x, this.center.y, this.circleSize, Math.PI* 0.5, dial_position, false);
+			arc(this.center.x, this.center.y, this.circleSize , Math.PI* 0.5, dial_position, false);
 			lineTo(this.center.x,this.center.y);
 			globalAlpha = 0.1;
 			fillStyle = this.colors.accent;
@@ -2140,7 +1874,7 @@ dial.prototype.draw = function() {
 		//draw round accent
 		beginPath();
 			lineWidth = this.accentWidth;
-			arc(this.center.x, this.center.y, this.circleSize-this.lineWidth , Math.PI* 0.5, dial_position, false);
+			arc(this.center.x, this.center.y, this.circleSize , Math.PI* 0.5, dial_position, false);
 			strokeStyle = this.colors.accent;
 			stroke();
 		closePath(); 
@@ -2168,7 +1902,7 @@ dial.prototype.draw = function() {
 
 
 dial.prototype.click = function(e) {
-	this.val.value = math.prune(this.val.value, 4)
+	this.val.value = math.prune(this.val.value, 3)
 	this.transmit(this.val);
 	this.draw();
 	this.aniStart = this.val.value;
@@ -2177,7 +1911,7 @@ dial.prototype.click = function(e) {
 
 dial.prototype.move = function() {	
 	this.val.value = math.clip((this.val.value - (this.deltaMove.y * this.responsivity)), 0, 1);
-	this.val.value = math.prune(this.val.value, 4)
+	this.val.value = math.prune(this.val.value, 3)
 	this.transmit(this.val);
 	
 	this.draw();
@@ -2214,13 +1948,13 @@ dial.prototype.aniBounce = function() {
 		}
 		this.aniMove = math.bounce(this.val.value, this.aniStart, this.aniStop, this.aniMove);	
 		this.draw();
-		this.val.value = math.prune(this.val.value, 4)
+		this.val.value = math.prune(this.val.value, 3)
 		this.transmit(this.val);
 	}
 }
 
 
-},{"../core/widget":3,"../utils/math":6,"util":47}],15:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":39}],14:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -2398,654 +2132,19 @@ envelope.prototype.stop = function() {
 	this.val.index = 0;
 	this.draw();
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],16:[function(require,module,exports){
-var math = require('../utils/math')
-var util = require('util');
-var widget = require('../core/widget');
-
-/** 
-	@class ghost (alpha) 
-	Interface gesture capture / playback (in development)    
-	
-	```html
-	<canvas nx="ghost"></canvas>
-	```
-	<canvas nx="ghost" style="margin-left:25px"></canvas>
-*/
-
-var ghost = module.exports = function(target) {
-	
-	this.defaultSize = { width: 100, height: 50 };
-	widget.call(this, target);
-	
-	//define unique attributes
-	this.recording = false;
-	this.playing = false;
-	this.maxLength = 2000;
-	this.components = new Array();
-	this.buffer = new Array();
-	//this.moment is for the record head
-	this.moment = 0;
-	//this.needle is for the playback head
-	this.needle = 0;
-	this.val = new Object();
-	this.rate = 1;
-	this.start = 0;
-	this.end = 1;
-	this.size = 0;
-	this.looping = true;
-	this.boundLog = this.log.bind(this)
-	this.direction = 1;
-	//settings
-	this.noise = 0;
-	this.loopstart = 0;
-	this.loopend = 0;
-	this.mode = "linear";   // linear,bounce,random,wander,pattern/dream
-	//init
-	this.init();
-
-	this.boundAdv = this.advance.bind(this);
-	nx.aniItems.push(this.boundAdv)
-
-}
-
-util.inherits(ghost, widget);
-
-
-ghost.prototype.init = function() {
-	this.draw();
-}
-
-ghost.prototype.watch = function() {
-}
-	
-	//sets a new component to be recorded
-ghost.prototype.connect = function(target) {
-	var compIndex = this.components.length;
-	this.components.push(target);
-	target.tapeNum = compIndex;
-	target.isRecording = true;
-	target.recorder = this;
-	this.buffer[compIndex] = new Object();
-	for (var key in target.val) {
-		this.buffer[compIndex][key] = new Array();
-	}
-	
-}
-	
-	//the actual recording function
-ghost.prototype.write = function(index, val) {
-	if (this.moment>=this.maxLength) {
-		this.stop();
-	}
-	for (var key in val) {
-		if (this.buffer[index][key]) {
-			// if an array or object, must make a copy, otherwise it is a reference to the original and will not record properly
-			if (typeof val[key] == "object") {
-				if (Array.isArray(val[key])) {
-				//	this.buffer[index][key][this.moment] = val[key].slice()
-				//	above line should work, but is still only a reference, not a copy
-					this.buffer[index][key][this.moment] = JSON.parse(JSON.stringify(val[key]))
-				} else {
-					this.buffer[index][key][this.moment] = {}
-					for (var subkey in val[key]) {
-						this.buffer[index][key][this.moment][subkey] = val[key][subkey]
-					}
-				}
-			} else {
-				this.buffer[index][key][this.moment] = val[key];
-			}
-		}
-	}
-	this.draw();
-}
-	
-
-ghost.prototype.draw = function() {
-
-	with (this.context) {
-		fillStyle = this.colors.fill;
-		fillRect(0,0,this.width,this.height)
-	}
-
-	var quad = this.width/4;
-	var quad2 = this.width-quad;
-	
-	if (!this.recording) {
-		with (this.context) {
-			fillStyle = "#e33";
-			beginPath()
-			arc(quad,this.height/2,quad*0.8,0,Math.PI*2)
-			fill()
-			closePath();
-			textAlign = "center"
-			textBaseline = "middle"
-			font = "normal "+this.height/6+"px courier"
-			fillStyle = this.colors.fill
-			fillText("rec",quad,this.height/2)
-		}
-	} else {
-		with (this.context) {
-			fillStyle = "#e33";
-			fillRect(quad*0.4,quad*0.4,quad*1.2,quad*1.2)
-		}
-	}
-	
-	if (!this.playing) {
-		with (this.context) {
-			fillStyle = this.colors.border
-			beginPath()
-			arc(quad2,this.height/2,quad*0.8,0,Math.PI*2)
-			fill()
-			closePath()
-			textAlign = "center"
-			textBaseline = "middle"
-			font = "normal "+this.height/6+"px courier"
-			fillStyle = this.colors.fill
-			fillText("play",quad2,this.height/2)
-		}
-	} else {
-		with (this.context) {
-			strokeStyle = this.colors.border
-			lineWidth = this.width/30
-			beginPath()
-			arc(quad2,this.height/2,quad*0.8,0,Math.PI*2)
-			stroke()
-			closePath()
-			var sec = ~~(this.needle/30)
-			textAlign = "center"
-			textBaseline = "middle"
-			font = "normal "+this.height/3+"px courier"
-			fillStyle = this.colors.border
-			fillText(sec,quad2,this.height/2+2)
-		}
-	}
-}
-
-ghost.prototype.record = function() {
-	if (!this.playing) {
-		this.components = new Array();
-		for (var key in nx.widgets) {
-			this.connect(nx.widgets[key]);
-		}
-	}
-	this.moment = 0;
-	nx.aniItems.push(this.boundLog)
-	this.recording = true;
-}
-
-ghost.prototype.log = function() {
-	for (var i=0;i<this.components.length;i++) {
-		var sender = this.components[i];
-		this.write(this.components[i].tapeNum,this.components[i].val);
-	}
-	this.moment++;
-}
-
-ghost.prototype.stop = function() {
-	nx.removeAni(this.boundLog);
-	this.size = this.moment;
-	this.recording = false;
-	this.draw();
-}
-
-
-ghost.prototype.scan = function(x) {
-	// loop through the widgets that were recorded
-	for (var i=0;i<this.components.length;i++) {
-		//sender is the current widget we're looking at
-		var sender = this.components[i];
-		//loop through the widget's gesture buffer
-		for (var key in this.buffer[sender.tapeNum]) {
-
-			if (this.buffer[sender.tapeNum][key]) {
-
-				//create a new val object
-				var val = new Object();
-				//make sure we're not looking out of bounds of the buffer
-				var max = this.buffer[sender.tapeNum][key][~~this.needle+1] ? this.buffer[sender.tapeNum][key][~~this.needle+1] : this.buffer[sender.tapeNum][key][~~this.needle]
-
-				if (this.buffer[sender.tapeNum][key][~~this.needle-this.direction] != undefined && this.buffer[sender.tapeNum][key][~~this.needle] != this.buffer[sender.tapeNum][key][~~this.needle-this.direction]) {
-					
-					// if it's a number, interpolate
-					if (typeof this.buffer[sender.tapeNum][key][~~this.needle] == "number") {
-						// create the value pair
-						val[key] = nx.interp(this.needle - ~~this.needle, this.buffer[sender.tapeNum][key][~~this.needle], max)
-						val[key] += Math.random() * this.noise - this.noise/2;
-						val[key] = nx.clip(val[key],0,1)
-						//set the widget with the value from the buffer
-						sender.set(val, true)
-					} else {
-						// otherwise, transfer the closest val as is
-						val[key] = this.buffer[sender.tapeNum][key][~~this.needle]
-						sender.set(val, true)
-						
-					}
-
-
-
-
-				}
-			}
-		}
-	}
-}
-
-
-
-//this.moment is for the record head
-//this.needle is for the playback head
-
-ghost.prototype.play = function(rate,start,end) {
-	rate ? this.rate = rate : false;
-	if (start) {
-		this.needle = this.moment-1;
-		this.start = start;
-	} else {
-		this.needle = this.moment-1;
-		this.start = 0;
-	} 
-	if (this.mode=="linear") {
-		this.direction = 1;
-	}
-	end ? this.end = end : this.end = 1
-	this.playing = true;
-}
-
-ghost.prototype.pause = function() {
-	this.playing = false;
-}
-
-ghost.prototype.loop = function() {
-	
-}
-
-ghost.prototype.advance = function() {
-	if (this.playing) {
-		if (this.mode == "linear" || this.mode == "bounce") {
-			this.needle += this.rate*this.direction;
-		} else if (this.mode=="random") {
-			this.needle = nx.random((this.end-this.start)*this.size)+this.start*this.size;
-		} else if (this.mode=="wander") {
-			var dir = 3
-			this.needle > this.size*0.75 ? dir-- : null;
-			this.needle < this.size*0.25 ? dir++ : null;
-			this.needle += this.rate*this.direction * (nx.random(dir)-1);
-		}
-
-		if (this.needle/this.size < this.end && this.needle/this.size > this.start) {
-			this.scan();
-		} else if (this.looping) {
-			if (this.mode=="linear") {
-				this.needle = this.start*this.size + 1;
-			} else {
-				this.direction = this.direction * -1
-			}
-		} else {
-			this.playing = false;
-		}
-		this.draw();
-	}
-}
-	
-
-ghost.prototype.click = function(e) {
-	if (this.clickPos.x<this.width/2) {
-		if (this.recording) {
-			this.stop()
-		} else {
-			this.record()
-		}
-	} else {
-		if (this.playing) {
-			this.pause();
-		} else {
-			this.play();
-		}
-		this.draw();
-	}
-}
-},{"../core/widget":3,"../utils/math":6,"util":47}],17:[function(require,module,exports){
-var math = require('../utils/math')
-var util = require('util');
-var widget = require('../core/widget');
-
-/** 
-	@class ghostlist (alpha) 
-	Interface gesture capture / playback (in development)    
-	
-	```html
-	<canvas nx="ghostlist"></canvas>
-	```
-	<canvas nx="ghostlist" style="margin-left:25px"></canvas>
-*/
-
-var ghostlist = module.exports = function(target) {
-	
-	this.defaultSize = { width: 100, height: 50 };
-	widget.call(this, target);
-	
-	//define unique attributes
-	this.recording = false;
-	this.playing = false;
-	this.maxLength = 2000;
-	this.components = new Array();
-	//the recording buffer
-	this.buffer = new Array();
-	//the playback info
-	this.playbuffer = []
-	this.playIndex = 0
-	//this.moment is for the record head
-	this.moment = 0;
-	//this.needle is for the playback head
-	this.needle = 0;
-	this.val = new Object();
-	this.rate = 1;
-	this.start = 0;
-	this.end = 1;
-	this.size = 0;
-	this.looping = true;
-	this.boundLog = this.log.bind(this)
-	this.direction = 1;
-	//settings
-	this.noise = 0;
-	this.loopstart = 0;
-	this.loopend = 0;
-	this.mode = "linear";   // linear,bounce,random,wander,pattern/dream
-	//init
-	this.init();
-
-	this.boundAdv = this.advance.bind(this);
-	nx.aniItems.push(this.boundAdv)
-
-}
-
-util.inherits(ghostlist, widget);
-
-
-ghostlist.prototype.init = function() {
-	this.draw();
-}
-
-ghostlist.prototype.watch = function() {
-}
-	
-	//sets a new component to be recorded
-ghostlist.prototype.connect = function(target) {
-	var compIndex = this.components.length;
-	this.components.push(target);
-	target.tapeNum = compIndex;
-	target.isRecording = true;
-	target.recorder = this;
-	this.buffer[compIndex] = new Object();
-	for (var key in target.val) {
-		this.buffer[compIndex][key] = new Array();
-	}
-	
-}
-	
-	//the actual recording function
-ghostlist.prototype.write = function(index, val) {
-	if (this.moment>=this.maxLength) {
-		this.stop();
-	}
-	for (var key in val) {
-		if (this.buffer[index][key]) {
-			// if an array or object, must make a copy, otherwise it is a reference to the original and will not record properly
-			if (typeof val[key] == "object") {
-				if (Array.isArray(val[key])) {
-				//	this.buffer[index][key][this.moment] = val[key].slice()
-				//	above line should work, but is still only a reference, not a copy
-					this.buffer[index][key][this.moment] = JSON.parse(JSON.stringify(val[key]))
-				} else {
-					this.buffer[index][key][this.moment] = {}
-					for (var subkey in val[key]) {
-						this.buffer[index][key][this.moment][subkey] = val[key][subkey]
-					}
-				}
-			} else {
-				this.buffer[index][key][this.moment] = val[key];
-			}
-		}
-	}
-	this.draw();
-}
-	
-
-ghostlist.prototype.draw = function() {
-
-	with (this.context) {
-		fillStyle = this.colors.fill;
-		fillRect(0,0,this.width,this.height)
-	}
-
-	var quad = this.width/4;
-	var quad2 = this.width-quad;
-	
-	if (!this.recording) {
-		with (this.context) {
-			fillStyle = "#e33";
-			beginPath()
-			arc(quad,this.height/2,quad*0.8,0,Math.PI*2)
-			fill()
-			closePath();
-			textAlign = "center"
-			textBaseline = "middle"
-			font = "normal "+this.height/6+"px courier"
-			fillStyle = this.colors.fill
-			fillText("rec",quad,this.height/2)
-		}
-	} else {
-		with (this.context) {
-			fillStyle = "#e33";
-			fillRect(quad*0.4,quad*0.4,quad*1.2,quad*1.2)
-		}
-	}
-	
-	if (!this.playing) {
-		with (this.context) {
-			fillStyle = this.colors.border
-			beginPath()
-			arc(quad2,this.height/2,quad*0.8,0,Math.PI*2)
-			fill()
-			closePath()
-			textAlign = "center"
-			textBaseline = "middle"
-			font = "normal "+this.height/6+"px courier"
-			fillStyle = this.colors.fill
-			fillText("play",quad2,this.height/2)
-		}
-	} else {
-		with (this.context) {
-			strokeStyle = this.colors.border
-			lineWidth = this.width/30
-			beginPath()
-			arc(quad2,this.height/2,quad*0.8,0,Math.PI*2)
-			stroke()
-			closePath()
-			var sec = ~~(this.needle/30)
-			textAlign = "center"
-			textBaseline = "middle"
-			font = "normal "+this.height/3+"px courier"
-			fillStyle = this.colors.border
-			fillText(sec,quad2,this.height/2+2)
-		}
-	}
-}
-
-ghostlist.prototype.record = function() {
-//	if (!this.playing) {
-		this.components = new Array();
-		for (var key in nx.widgets) {
-			this.connect(nx.widgets[key]);
-			console.log(key)
-		}
-//	}
-	this.moment = 0;
-	nx.aniItems.push(this.boundLog)
-	this.recording = true;
-}
-
-ghostlist.prototype.log = function() {
-	for (var i=0;i<this.components.length;i++) {
-		var sender = this.components[i];
-		var val = {}
-		if (!sender.clicked) {
-			for (var key in sender.val) {
-				val[key] = false
-			}
-		} else {
-			val = sender.val
-		}
-		this.write(this.components[i].tapeNum,val);
-	}
-	this.moment++;
-}
-
-ghostlist.prototype.stop = function() {
-	nx.removeAni(this.boundLog);
-	this.size = this.moment;
-	this.recording = false;
-	this.draw();
-}
-
-
-ghostlist.prototype.scan = function(x) {
-
-	// loop through the widgets that were recorded
-	for (var i=0;i<this.components.length;i++) {
-		//sender is the current widget we're looking at
-		var sender = this.components[i];
-		//loop through the widget's gesture buffer
-		for (var key in this.playbuffer[sender.tapeNum]) {
-
-			if (this.playbuffer[sender.tapeNum][key]) {
-
-				//create a new val object
-				var val = new Object();
-				//make sure we're not looking out of bounds of the buffer
-				var max = this.playbuffer[sender.tapeNum][key][~~this.needle+1] ? this.playbuffer[sender.tapeNum][key][~~this.needle+1] : this.playbuffer[sender.tapeNum][key][~~this.needle]
-
-				if (this.playbuffer[sender.tapeNum][key][~~this.needle-this.direction] != undefined && this.playbuffer[sender.tapeNum][key][~~this.needle] != this.playbuffer[sender.tapeNum][key][~~this.needle-this.direction]) {
-					
-					// if it's a number, interpolate
-					if (typeof this.playbuffer[sender.tapeNum][key][~~this.needle] == "number") {
-						// create the value pair
-						val[key] = nx.interp(this.needle - ~~this.needle, this.playbuffer[sender.tapeNum][key][~~this.needle], max)
-						val[key] += Math.random() * this.noise - this.noise/2;
-						val[key] = nx.clip(val[key],0,1)
-						//set the widget with the value from the buffer
-						sender.set(val, true);
-					} else {
-						// otherwise, transfer the closest val as is
-						val[key] = this.playbuffer[sender.tapeNum][key][~~this.needle]
-						
-						if (val[key]) {
-							sender.set(val, true)
-						}
-						
-					}
-				}
-			}
-		}
-	}
-}
-
-
-
-//this.moment is for the record head
-//this.needle is for the playback head
-
-ghostlist.prototype.play = function(rate,start,end) {
-	rate ? this.rate = rate : false;
-	if (start) {
-		this.needle = this.moment-1;
-		this.start = start;
-	} else {
-		this.needle = this.moment-1;
-		this.start = 0;
-	} 
-	if (this.mode=="linear") {
-		this.direction = 1;
-	}
-	end ? this.end = end : this.end = 1
-	this.playing = true;
-}
-
-ghostlist.prototype.pause = function() {
-	this.playing = false;
-}
-
-ghostlist.prototype.loop = function() {
-	
-}
-
-ghostlist.prototype.advance = function() {
-	if (this.playing) {
-		if (this.mode == "linear" || this.mode == "bounce") {
-			this.needle += this.rate*this.direction;
-		} else if (this.mode=="random") {
-			this.needle = nx.random((this.end-this.start)*this.size)+this.start*this.size;
-		} else if (this.mode=="wander") {
-			var dir = 3
-			this.needle > this.size*0.75 ? dir-- : null;
-			this.needle < this.size*0.25 ? dir++ : null;
-			this.needle += this.rate*this.direction * (nx.random(dir)-1);
-		}
-
-		if (this.needle/this.size < this.end && this.needle/this.size > this.start) {
-			this.scan();
-		} else if (this.looping) {
-			if (this.mode=="linear") {
-			//	this.needle = this.start*this.size + 1;
-				this.needle = 0;
-				this.playbuffer = this.jest.next()
-			} else {
-				this.direction = this.direction * -1
-			}
-		} else {
-			this.playing = false;
-		}
-		this.draw();
-		this.jest.drawvis(this.needle/this.size)
-	}
-}
-	
-
-ghostlist.prototype.click = function(e) {
-	if (this.clickPos.x<this.width/2) {
-		if (this.recording) {
-			this.stop()
-		} else {
-			this.record()
-		}
-	} else {
-		if (this.playing) {
-			this.pause();
-		} else {
-			this.play();
-		}
-		this.draw();
-	}
-}
-},{"../core/widget":3,"../utils/math":6,"util":47}],18:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":39}],15:[function(require,module,exports){
 module.exports = {
   banner: require('./banner'),
   button: require('./button'),
   colors: require('./colors'),
   comment: require('./comment'),
-  crossfade: require('./crossfade'),
   dial: require('./dial'),
   envelope: require('./envelope'),
-  ghost: require('./ghost'),
-  ghostlist: require('./ghostlist'),
   joints: require('./joints'),
   keyboard: require('./keyboard'),
   matrix: require('./matrix'),
   message: require('./message'),
-  meter: require('./meter'),
   metro: require('./metro'),
-  motion: require('./motion'),
   mouse: require('./mouse'),
   multislider: require('./multislider'),
   multitouch: require('./multitouch'),
@@ -3056,15 +2155,12 @@ module.exports = {
   select: require('./select'),
   slider: require('./slider'),
   string: require('./string'),
-  tabs: require('./tabs'),
-  text: require('./text'),
   tilt: require('./tilt'),
   toggle: require('./toggle'),
   typewriter: require('./typewriter'),
-  vinyl: require('./vinyl'),
-  windows: require('./windows')
+  vinyl: require('./vinyl')
 }
-},{"./banner":9,"./button":10,"./colors":11,"./comment":12,"./crossfade":13,"./dial":14,"./envelope":15,"./ghost":16,"./ghostlist":17,"./joints":19,"./keyboard":20,"./matrix":21,"./message":22,"./meter":23,"./metro":24,"./motion":25,"./mouse":26,"./multislider":27,"./multitouch":28,"./number":29,"./position":30,"./range":31,"./remix":32,"./select":33,"./slider":34,"./string":35,"./tabs":36,"./text":37,"./tilt":38,"./toggle":39,"./typewriter":40,"./vinyl":41,"./windows":42}],19:[function(require,module,exports){
+},{"./banner":9,"./button":10,"./colors":11,"./comment":12,"./dial":13,"./envelope":14,"./joints":16,"./keyboard":17,"./matrix":18,"./message":19,"./metro":20,"./mouse":21,"./multislider":22,"./multitouch":23,"./number":24,"./position":25,"./range":26,"./remix":27,"./select":28,"./slider":29,"./string":30,"./tilt":31,"./toggle":32,"./typewriter":33,"./vinyl":34}],16:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -3262,7 +2358,7 @@ joints.prototype.aniBounce = function() {
 	}
 }
 
-},{"../core/widget":3,"../utils/math":6,"util":47}],20:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":39}],17:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 var drawing = require('../utils/drawing');
@@ -3283,10 +2379,7 @@ var keyboard = module.exports = function (target) {
 	widget.call(this, target);
 
 	/** @property {integer} octaves Number of octaves on the keyboard */
-	
-
 	this.octaves = 3;
-
 	this.white = {
 		width:0,
 		height:0
@@ -3503,25 +2596,17 @@ keyboard.prototype.whichKey = function (x, y){
 }
 
 keyboard.prototype.click = function(e) {
-
 	if (this.clickPos.touches.length>1 || this.multitouch) {
-		this.multitouch = true;
 		if (this.clickPos.touches.length>=2 && this.oneleft) {
 			this.oneleft = false;
 		}
-		this.keysinuse = new Array();
 		for (var j=0;j<this.clickPos.touches.length;j++) {
+			this.multitouch = true;
 			this.fingers[j] = {
 				key: this.whichKey(this.clickPos.touches[j].x, this.clickPos.touches[j].y)
 			}
 			if (!this.fingers[j].key.on) {
-				this.toggle(this.fingers[j].key, true)
-			}
-			this.keysinuse.push(this.fingers[j].key.index)
-		}
-		for (var j=0;j<this.keys.length;j++) {
-			if (this.keys[j].on  && this.keysinuse.indexOf(this.keys[j].index)<0) {
-				this.toggle(this.keys[j], false);
+				this.fingers[j].key.on = true;
 			}
 		}
 	} else {
@@ -3529,10 +2614,10 @@ keyboard.prototype.click = function(e) {
 		this.fingers[0].key = this.whichKey(this.clickPos.x, this.clickPos.y);
 		this.toggle(this.fingers[0].key)
 	}
-
 }
 
 keyboard.prototype.move = function(e) {
+	var debug = document.getElementById("debug");
 	if (this.clickPos.touches.length>1 || this.multitouch) {
 		this.keysinuse = new Array();
 		for (var j=0;j<this.clickPos.touches.length;j++) {
@@ -3553,8 +2638,8 @@ keyboard.prototype.move = function(e) {
 		this.fingers[0].pkey = this.fingers[0].key;
 		this.fingers[0].key = this.whichKey(this.clickPos.x, this.clickPos.y);
 		if (this.fingers[0].key && this.fingers[0].key.index != this.fingers[0].pkey.index) {
-			this.toggle(this.fingers[0].pkey, false);
 			this.toggle(this.fingers[0].key, true);
+			this.toggle(this.fingers[0].pkey, false);
 		}
 	}
 }
@@ -3591,7 +2676,7 @@ keyboard.prototype.release = function(e) {
 
 
 
-},{"../core/widget":3,"../utils/drawing":5,"../utils/math":6,"util":47}],21:[function(require,module,exports){
+},{"../core/widget":3,"../utils/drawing":5,"../utils/math":6,"util":39}],18:[function(require,module,exports){
 var math = require('../utils/math');
 var drawing = require('../utils/drawing');
 var util = require('util');
@@ -3650,8 +2735,7 @@ var matrix = module.exports = function (target) {
 		| --- | ---
 		| *row* | Current row being changed
 		| *col* | Current column being changed
-		| *level* | Whether cell is on or off (0 or 1)
-		| *list * | Array of values in highlighted column (if sequencing)
+		| *value* | New value of matrix point (0-1 float)
 	*/
 	this.val = {
 		row: 0,
@@ -3676,9 +2760,6 @@ var matrix = module.exports = function (target) {
 	this.context.lineWidth = 1;
 
 	this.sequencing = false;
-
-	/** @property {integer}  cellBuffer  How much padding between matrix cells, in pixels */
-	this.cellBuffer = 4;
 	
 	/** @property {string}  sequenceMode  Sequence pattern (currently accepts "linear" which is default, or "random") */
 	this.sequenceMode = "linear"; // "linear" or "random". future options would be "wander" (drunk) or "markov"
@@ -3697,16 +2778,16 @@ util.inherits(matrix, widget);
 
 
 matrix.prototype.init = function() {
-	
-	this.pmatrix = this.matrix ? this.matrix : false;
 
+	this.lineWidth = 1;
+	
 	this.matrix = null;
 	// generate 2D matrix array
 	this.matrix = new Array(this.col)
 	for (var i=0;i<this.col;i++) {
 		this.matrix[i] = new Array(this.row)
 		for (var j=0;j<this.row;j++) {
-			this.matrix[i][j] = this.pmatrix ? this.pmatrix[i] ? this.pmatrix[i][j] : 0 : 0; // set value of each matrix cell
+			this.matrix[i][j] = 0; // set value of each matrix cell
 		}
 	}
 
@@ -3717,10 +2798,8 @@ matrix.prototype.init = function() {
 
 matrix.prototype.draw = function() {
 
-	this.erase();
-
-	this.cellWid = this.width/this.col;
-	this.cellHgt = this.height/this.row;
+	this.cellWid = this.canvas.width/this.col;
+	this.cellHgt = this.canvas.height/this.row;
 
 	for (var i=0;i<this.row;i++){
 		for (var j=0;j<this.col;j++) {
@@ -3734,13 +2813,13 @@ matrix.prototype.draw = function() {
 			
 			with (this.context) {
 				strokeStyle = this.colors.border;
-				lineWidth = this.cellBuffer;
 				if (this.matrix[j][i] > 0) {
 					fillStyle = this.colors.accent;
 				} else {
 					fillStyle = this.colors.fill;
 				}
-				fillRect(st_x+this.cellBuffer/2, st_y+this.cellBuffer/2, boxwid-this.cellBuffer, boxhgt-this.cellBuffer);
+				fillRect(st_x, st_y, boxwid, boxhgt);
+				strokeRect(st_x, st_y, boxwid, boxhgt);
 			
 				// sequencer highlight
 				if (this.place == j) {
@@ -3753,7 +2832,6 @@ matrix.prototype.draw = function() {
 			}
 		} 
 	}
-
 	this.drawLabel();
 }
 
@@ -3902,8 +2980,14 @@ matrix.prototype.seqStep = function() {
 		if (this.place==null) {
 			this.place = 0;
 		}
+		this.draw();
 
-		this.jumpToCol(this.place);
+	//	var data = this.matrix[this.place]
+	//	data = data.join();
+	//	data = data.replace(/\,/g," ");
+		this.val.list = this.matrix[this.place];
+
+		this.transmit(this.val);
 
     }
 
@@ -3913,29 +2997,12 @@ matrix.prototype.seqStep = function() {
 	}
 }
 
-/** @method jumpToCol
-Jump to a certain column of the matrix, highlight it, and output its values as an array. Column numbers start at 0.
-
-```js
-	matrix1.jumpToCol(1);
-```
-*/
-
-matrix.prototype.jumpToCol = function(place) {
-		this.place = place
-		this.val = {
-			list: this.matrix[this.place]
-		}
-		this.transmit(this.val);
-		this.draw();
-}
-
 
 matrix.prototype.customDestroy = function() {
 	this.stop();
 }
 
-},{"../core/widget":3,"../utils/drawing":5,"../utils/math":6,"util":47}],22:[function(require,module,exports){
+},{"../core/widget":3,"../utils/drawing":5,"../utils/math":6,"util":39}],19:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 
@@ -4007,121 +3074,7 @@ message.prototype.click = function(e) {
 message.prototype.release = function(e) {
 	this.draw();
 }
-},{"../core/widget":3,"util":47}],23:[function(require,module,exports){
-var util = require('util');
-var drawing = require('../utils/drawing');
-var widget = require('../core/widget');
-
-/** 
-    
-    @public
-    @class meter 
-
-    Decibel level meter.
-
-    ```html
-    <canvas nx="meter"></canvas>
-    ```
-    <canvas nx="meter" style="margin-left:25px"></canvas>
-*/
-
-var meter = module.exports = function(target) {
-
-    // to update, eventually (note to self)
-    // possibly a less-frequent animation request, to lighten the graphics load
-    // option for stereo meter? i.e. optional third .setup(ctx,s1,s2) argument
-
-    this.defaultSize = { width: 20, height: 50 };
-    widget.call(this, target);
-
-    this.val = {
-        level: 0
-    }
-    this.dataArray;
-    this.bars = 10;
-
-    this.init();
-
-}
-util.inherits(meter, widget);
-
-
-meter.prototype.init = function(){
-   this.bar = {
-        x: 0,
-        y: 0,
-        w: this.width,
-        h: this.height/this.bars
-    }
-    with (this.context) {
-        fillStyle = this.colors.fill;
-        fillRect(0,0,this.width, this.height);
-    }
-}
-
-meter.prototype.setup = function(actx,source){
-    this.actx = actx;   
-    this.source = source;
-
-    this.analyser = this.actx.createAnalyser();
-    this.analyser.smoothingTimeConstant = 0.85;
-    this.analyser.fftsize = 1024;
-    this.bufferLength = this.analyser.frequencyBinCount;
-    this.dataArray = new Uint8Array(this.bufferLength);
-    this.source.connect(this.analyser);
-    
-    this.draw();
-}
-
-meter.prototype.draw = function(){
-    
-    if(this.dataArray) {
-        this.analyser.getByteTimeDomainData(this.dataArray);
-
-        var max = Math.max.apply(null, this.dataArray);
-        var min = Math.min.apply(null, this.dataArray);
-        var amp = max - min;
-        amp /= 240
-
-        //converts amps to db
-        var db = 20 * (Math.log(amp) / Math.log(10))
-
-        with (this.context){
-            fillStyle = this.colors.fill;
-            fillRect(0,0,this.width, this.height);
-
-            //scales: -40 to +10 db range => a number of bars
-            var dboffset = Math.floor((db + 40) / (50/this.bars) );
-           
-            for (var i = 0; i<this.bars; i++) {
-
-                // 0+ db is red
-                if(i >= this.bars*.8) {
-                    fillStyle = 'rgb(255,0,0)';
-
-                // -5 to 0 db is yellow
-                } else if (i < this.bars*.8 && i >= this.bars*.69) {
-                    fillStyle = 'rgb(255,255,0)';
-
-                // -40 to -5 db is green
-                } else if (i < this.bars*.69) {
-                    fillStyle = 'rgb(0,255,0)';
-                }
-
-                // draw bar
-                if (i<dboffset)
-                    fillRect(1,this.height-this.bar.h*i,this.width-2,this.bar.h-1);
-
-            }
-        }
-    }
-
-    window.requestAnimationFrame(this.draw.bind(this));
-    
-}
-    
-    
-},{"../core/widget":3,"../utils/drawing":5,"util":47}],24:[function(require,module,exports){
+},{"../core/widget":3,"util":39}],20:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -4235,170 +3188,7 @@ metro.prototype.advance = function() {
 metro.prototype.customDestroy = function() {
 	nx.removeAni(this.advance.bind(this))
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],25:[function(require,module,exports){
-var math = require('../utils/math')
-var util = require('util');
-var widget = require('../core/widget');
-
-/** 
-	@class motion      
-	Mobile and Mac/Chrome-compatible motion sensor. May not work on all devices! <br> **Notes:** Clicking on this widget toggles it inactive or active. <br>
-	We recommend not calling .init() on this object after the original initialization, because it will add additional redundant motion listeners to your document.
-	```html
-	<canvas nx="motion"></canvas>
-	```
-	<canvas nx="motion" style="margin-left:25px"></canvas>
-*/
-
-var motion = module.exports = function (target) {
-	this.defaultSize = { width: 50, height: 50 };
-	widget.call(this, target);
-	
-	this.motionLR;
-	this.motionFB;
-	this.z;
-	/** @property {boolean} active Whether or not the motion widget is on (animating and transmitting data). */
-	this.active = true;
-
-	this.px = 0;
-	this.py = 0;
-	this.pz = 0;
-
-	/** @property {object}  val  Object containing the core interactive aspects of the widget, which are also its data output. Has the following properties: 
-		| &nbsp; | data
-		| --- | ---
-		| *x* | X-axis motion if supported (-1 to 1)
-		| *y* | Y-axis motion if supported (-1 to 1)
-		| *z* | Z-axis motion if supported (-1 to 1 or 0 to 360 depending on device)
-	*/
-	this.val = {
-		x: 0,
-		y: 0,
-		z: 0
-	}
-
-	/** @property {string}  text   Text shown on motion object
-	*/
-	
-	this.text = "Motion";
-	this.init();
-
-	this.boundMotion = this.motionlistener.bind(this)
-
-	if (window.DeviceMotionEvent) {
-		window.addEventListener('devicemotion', this.boundMotion, false);
-	} else {
-		with (this.context) {
-			fillText("incompatible",0,0)
-			this.active = false;
-		}
-	}
-	
-}
-util.inherits(motion, widget);
-
-motion.prototype.deviceMotionHandler = function() {
-	
-	this.val = {
-		x: math.prune(this.motionLR/10,4),
-		y: math.prune(this.motionFB/10,4),
-		z: math.prune(this.z/10,4)
-	}
-
-	this.transmit(this.val);
-	
-}
-
-motion.prototype.motionlistener = function(e) {
-	var data = e.acceleration
-	
-	if (this.active) {
-
-
-		this.motionLR = nx.lp(this.canvasID+"motionx",data.x,20)
-		this.motionFB = nx.lp(this.canvasID+"motiony",data.y,20)
-		this.z = nx.lp(this.canvasID+"motionz",data.z,20)
-    	this.deviceMotionHandler()
-
-   		this.draw();
-
-		if (data.x===null || data.x===undefined) {
-			this.erase()
-			with (this.context) {
-				fillStyle = this.colors.accent
-				font="12px courier";
-				textAlign = "center"
-				fillText("motion: device not supported",this.width/2,this.height/2)	
-			}
-			this.active = false;
-		}
- 	}
-}
-
-motion.prototype.init = function() {
-	this.draw()
-}
-
-motion.prototype.draw = function() {
-	
-	this.erase()
-
-	with (this.context) {
-	    fillStyle = this.colors.fill;
-	    fillRect(0,0,this.width,this.height);
-	    fillStyle = this.colors.accent;
-	    var eighth = Math.PI/4
-	    if (this.motionFB<0) {
-			beginPath()
-				moveTo(this.width/2,this.height/2)
-				arc(this.width/2,this.height/2,this.width/2,eighth*5,eighth*7,false)
-				globalAlpha = Math.pow(this.motionFB, 2)
-				fill()
-			closePath()
-	    } else {
-			beginPath()
-				moveTo(this.width/2,this.height/2)
-				arc(this.width/2,this.height/2,this.width/2,eighth*1,eighth*3,false)
-				globalAlpha = Math.pow(this.motionFB, 2)
-				fill()
-			closePath()
-	    }
-	    if (this.motionLR<0) {
-			beginPath()
-				moveTo(this.width/2,this.height/2)
-				arc(this.width/2,this.height/2,this.width/2,eighth*7,eighth*1,false)
-				globalAlpha = Math.pow(this.motionLR, 2)
-				fill()
-			closePath()
-	    } else {
-			beginPath()
-				moveTo(this.width/2,this.height/2)
-				arc(this.width/2,this.height/2,this.width/2,eighth*3,eighth*5,false)
-				globalAlpha = Math.pow(this.motionLR, 2)
-				fill()
-			closePath()
-	    }
-		beginPath()
-			moveTo(this.width/2,this.height/2)
-			arc(this.width/2,this.height/2,this.width/6,0,Math.PI*2,false)
-			globalAlpha = Math.pow(this.z, 2)
-			fill()
-		closePath()
-		globalAlpha = 1
-	}
-	this.drawLabel();
-}
-
-motion.prototype.click = function() {
-	this.active = !this.active;
-	this.draw()
-}
-
-motion.prototype.customDestroy = function() {
-	this.active = false;
-	window.removeEventListener("devicemotion",this.motionlistener,false);
-}
-},{"../core/widget":3,"../utils/math":6,"util":47}],26:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":39}],21:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 var math = require('../utils/math');
@@ -4468,10 +3258,10 @@ mouse.prototype.draw = function() {
 		fillRect(this.inside.quarterwid*2, this.inside.height, this.inside.quarterwid, scaleddx);
 		fillRect(this.inside.quarterwid*3, this.inside.height, this.inside.quarterwid, scaleddy);
 
-		globalAlpha = 1;
-		fillStyle = this.colors.fill;
+		globalAlpha = 0.5;
+		fillStyle = this.colors.white;
 		textAlign = "center";
-		font = this.width/7+"px "+this.font;
+		font = this.width/7+"px gill sans";
 		fillText("x", this.inside.quarterwid*0 + this.inside.quarterwid/2, this.height-7);
 		fillText("y", this.inside.quarterwid*1 + this.inside.quarterwid/2, this.height-7);
 		fillText("dx", this.inside.quarterwid*2 + this.inside.quarterwid/2, this.height-7);
@@ -4498,7 +3288,7 @@ mouse.prototype.move = function(e) {
 mouse.prototype.customDestroy = function() {
 	window.removeEventListener("mousemove",  this.boundmove, false);
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],27:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":39}],22:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -4541,6 +3331,7 @@ util.inherits(multislider, widget);
 multislider.prototype.init = function() {
 	this.val = new Object();
 	for (var i=0;i<this.sliders;i++) {
+		console.log(i)
 		this.val[i] = 0.7;
 	}
 	this.realSpace = { x: this.width, y: this.height }
@@ -4567,10 +3358,8 @@ multislider.prototype.draw = function() {
 			lineTo(i*this.sliderWidth,  this.height);
 			globalAlpha = 0.3 - (i%3)*0.1;
 			fill();
-			closePath(); 
+			closePath();
 			globalAlpha = 1;
-		//	var separation = i==this.sliders-1 ? 0 : 1;
-		//	fillRect(i*this.sliderWidth, this.height-this.val[i]*this.height, this.sliderWidth-separation, this.val[i]*this.height)
 		}
 	}
 	this.drawLabel();
@@ -4646,7 +3435,6 @@ Sets a slider to new value and transmits.
 multislider.prototype.setSliderValue = function(slider,value) {
 	this.val[slider] = value;
 	this.draw();
-	var msg = new Object();
 	msg[slider] = this.val[slider]
 	if (this.destination=="js" || this.destination=="node") {
 		msg["list"] = this.val;
@@ -4657,7 +3445,7 @@ multislider.prototype.setSliderValue = function(slider,value) {
 	this.transmit(msg);
 }
 
-},{"../core/widget":3,"../utils/math":6,"util":47}],28:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":39}],23:[function(require,module,exports){
 var math = require('../utils/math');
 var drawing = require('../utils/drawing');
 var util = require('util');
@@ -4812,10 +3600,11 @@ multitouch.prototype.draw = function() {
 				}
 			}
 			else {
-				this.setFont()
 				fillStyle = this.colors.border;
+				font = "14px courier";
+				textAlign = "center";
+				
 				fillText(this.text, this.width/2, this.height/2);
-				globalAlpha = 1;
 			}
 		}
 	}
@@ -4862,7 +3651,7 @@ multitouch.prototype.sendit = function() {
 	}
 	this.transmit(this.val);
 }
-},{"../core/widget":3,"../utils/drawing":5,"../utils/math":6,"util":47}],29:[function(require,module,exports){
+},{"../core/widget":3,"../utils/drawing":5,"../utils/math":6,"util":39}],24:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -4895,137 +3684,37 @@ var number = module.exports = function (target) {
 	this.val = {
 		value: 0
 	}
-
-	/** @property {integer}  decimalPlaces   How many decimal places on the number. This applies to both the output and the interface text. Default is 2. To achieve an int (non-float), set decimalPlaces to 0.
-
-		```js
-			// Turns number into an int counter
-			number1.decimalPlaces = 0;
-		```
-
-	*/ 
-	this.decimalPlaces = 3;
-	this.lostdata = 0;
-	this.actual = 0;
-
-
-	this.min = -20000
-	this.max = 20000
-	this.step = 1
-	this.rate = .25
-
 	this.init();
 }
 util.inherits(number, widget);
 
 number.prototype.init = function() {
-
-	this.canvas.ontouchstart = null;
-	this.canvas.ontouchmove = null;
-	this.canvas.ontouchend = null;
-
-	var htmlstr = '<input type="text" class="nx" id="'+this.canvasID+'" style="height:'+this.height+'px;width:'+this.width+'px;font-size:'+this.height/2+'px;"></input><canvas height="1px" width="1px" style="display:none"></canvas>'                   
-	var canv = this.canvas
-	var cstyle = this.canvas.style
-	var parent = canv.parentNode;
-	var newdiv = document.createElement("span");
-	newdiv.innerHTML = htmlstr;
-	parent.replaceChild(newdiv,canv)
-	this.el = document.getElementById(this.canvasID)
-	for (var prop in cstyle)
-    	this.el.style[prop] = cstyle[prop];
-
-	this.canvas = document.getElementById(this.canvasID);
-	this.canvas.style.fontSize = this.height * .6 + "px"
-	this.canvas.style.textAlign = "left"
-	this.canvas.style.backgroundColor = this.colors.fill
-	this.canvas.style.highlight = this.colors.fill
-	this.canvas.style.border = "none"
-	this.canvas.style.outline = "none"
-	this.canvas.style.padding = "4px 10px"
-	this.canvas.style.cursor = "pointer"
-	this.canvas.style.display = "block"
-
-	this.canvas.addEventListener("blur", function () {
-	  this.canvas.style.border = "none";
-	  if (this.canvas.value != this.val.value) {
-	  	this.actual = parseFloat(this.canvas.value)
-	  	this.actual = math.clip(this.actual,this.min,this.max)
-		this.actual = math.prune(this.actual,this.decimalPlaces);
-	  	this.set({"value": this.actual}, true)
-	  }
-	}.bind(this));
-
-	this.canvas.addEventListener("keydown", function (e) {
-	  console.log(e.which)
-	  if (e.which < 48 || e.which > 57) {
-	  	if (e.which != 189 && e.which != 190 && e.which != 8) {
-	  		e.preventDefault();
-	  	}
-	  }
-	  if (e.which==13) {
-	  /*	this.actual = parseFloat(this.canvas.value)
-	  	this.actual = math.clip(this.actual,this.min,this.max)
-		this.actual = math.prune(this.actual,this.decimalPlaces);
-	  	this.set({"value": this.actual}, true) */
-	  	//this.canvas.style.outline = "none";
-	  	this.canvas.blur()
-	  }
-	}.bind(this));
-
-	
-  // Setup interaction
-  if (nx.isTouchDevice) {
-    this.canvas.ontouchstart = this.preTouch;
-    this.canvas.ontouchmove = this.preTouchMove;
-    this.canvas.ontouchend = this.preTouchRelease;
-  } else {
-    this.canvas.addEventListener('mousedown', this.preClick, false);
-  }
-
-
-  this.canvas.style.userSelect = "none !important";
-  this.canvas.style.mozUserSelect = "none !important";
-  this.canvas.style.webkitUserSelect = "none !important";
-
-  this.draw();
+	this.draw();
 }
 
 number.prototype.draw = function() {
-
-	this.canvas.value = this.val.value;
-
-}
-
-
-number.prototype.click = function(e) {
-	this.canvas.readOnly = true;
+	this.erase();
+	with (this.context) {
+		fillStyle = this.colors.fill;
+		fillRect(0,0,this.width,this.height);
+		
+		fillStyle = this.colors.black;
+		textAlign = "left";
+		font = this.height*.6+"px courier";
+		textBaseline = 'middle';
+		fillText(this.val.value, 10, this.height/2-1);
+	}
 }
 
 number.prototype.move = function(e) {
 	if (this.clicked) {
-	  	this.canvas.style.border = "none";
-
-		this.actual -= (this.deltaMove.y*(this.rate*this.step));
-		this.actual = math.clip(this.actual,this.min,this.max)
-		this.val.value = Math.floor(this.actual / this.step) * this.step;
-		this.val.value = math.prune(this.val.value,this.decimalPlaces);
+		this.val.value += (this.deltaMove.y*-.1);
+		this.val.value = math.prune(this.val.value,1);
 		this.draw();
 		this.transmit(this.val);
 	}
 }
-
-
-number.prototype.release = function(e) {
-	if (!this.hasMoved && this.canvas.readOnly) {
-		this.canvas.readOnly = false;
-		this.canvas.focus()
-		this.canvas.setSelectionRange(0, this.canvas.value.length)
-		this.canvas.style.border = "solid 2px "+ this.colors.accent;
-	}
-}
-
-},{"../core/widget":3,"../utils/math":6,"util":47}],30:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":39}],25:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -5040,16 +3729,13 @@ var widget = require('../core/widget');
 */
 
 var position = module.exports = function (target) {
-
-	// define a default size
 	this.defaultSize = { width: 150, height: 100 };
-
 	widget.call(this, target);
 	
 	/** @property {integer} nodeSize Size of touch node graphic. */
 	this.nodeSize = 15;
 
-	/** @property {object}  val   val is an object containing the main interactive / actionable aspects of the widget.
+	/** @property {object}  val   
 		| &nbsp; | data
 		| --- | ---
 		| *x* | x position of slider (float 0-1)
@@ -5062,27 +3748,19 @@ var position = module.exports = function (target) {
 	
 	this.init();
 }
-
-// inherit the widget object template
 util.inherits(position, widget);
 
-// .init() is called automatically when the widget is created on a webpage.
 position.prototype.init = function() {
 	this.nodeSize = Math.min(this.height,this.width)/10;
-	this.nodeSize = Math.max(this.nodeSize,10)
 	this.actualWid = this.width - this.nodeSize*2;
 	this.actualHgt = this.height - this.nodeSize*2;
 	this.draw();
 }
 
-// .draw() should be used for any graphics activity
 position.prototype.draw = function() {
 	this.erase();
 	with (this.context) {
 
-		// use this.colors.fill for the widget background color (default: very light gray)
-		// use this.colors.border for any extra structural needs (default: light gray)
-		// use this.colors.accent for important or highlighted parts (default: a bright color)
 		fillStyle = this.colors.fill;
 		fillRect(0,0,this.width,this.height);
 
@@ -5103,100 +3781,25 @@ position.prototype.draw = function() {
 		}
 	
 		with (this.context) {
-			// draw the x/y level meters
-		/*	beginPath();
+			beginPath();
 			strokeStyle = this.colors.accent;
-			lineWidth = 5;
+			lineWidth = 3;
 			moveTo(0,this.height);
 			lineTo(this.val.x*this.width,this.height);
 			moveTo(0,this.height);
 			lineTo(0,math.invert(this.val.y)*this.height);					
 			stroke();
-			closePath(); */
-
-			// draw the touch point
+			closePath();
 			beginPath();
 			fillStyle = this.colors.accent;
 			arc(drawingX, drawingY, this.nodeSize, 0, Math.PI*2, true);					
 			fill();
 			closePath();
-
-			if (this.clicked) {
-				// draw the emphasis circle
-				beginPath();
-				fillStyle = this.colors.accent;
-				arc(drawingX, drawingY, this.nodeSize*2, 0, Math.PI*2, true);					
-				fill();
-				closePath();
-
-			}
 		}
 	}
 	
 	this.drawLabel();
 }
-
-// .click() will be fired when the interface is interacted with
-// this.clicked is automatically set to true
-// this.clickPos is already and object with x and y properties detailing click point.
-position.prototype.click = function() {
-	this.val.x = this.clickPos.x;
-	this.val.y = this.clickPos.y;
-	this.scaleNode();
-	this.val["state"] = "click"
-	this.transmit(this.val);
-	this.draw();
-}
-
-// .move() will be fired when the interface is moved over after being clicked
-// this.clickPos is already and object with x and y properties detailing click point.
-position.prototype.move = function() {
-	this.val.x = this.clickPos.x;
-	this.val.y = this.clickPos.y;
-	this.scaleNode();
-	this.val["state"] = "move"
-	this.transmit(this.val);
-	this.draw();
-}
-
-// .release() will be fired on mouse up (unclick)
-position.prototype.release = function() {
-	this.val.x = this.clickPos.x;
-	this.val.y = this.clickPos.y;
-	this.scaleNode();
-	this.val["state"] = "release"
-	this.transmit(this.val);
-	this.draw();
-}
-
-/* TOUCH SPECIFIC EVENTS
- currently, ontouch, ontouchmove, and ontouchrelease automatically execute .click, .move, and .release
- so you only need to write one function for these events, and they will be touch compatible by default
- however if you would like to create a touch-specific event you may define the following functions.
- in these functions, .clickPos and .clicked will refer to your touch interactions.
-
-position.prototype.touch = function() {
-
-}
-
-position.prototype.touchmove = function() {
-	
-}
-
-position.prototype.touchrelease = function() {
-	
-}
-
-
-
-
-*/
-
-
-
-/* 
- extra functions pertaining only to this widget 
-*/
 
 position.prototype.scaleNode = function() {
 	var actualX = this.val.x - this.nodeSize;
@@ -5207,6 +3810,37 @@ position.prototype.scaleNode = function() {
 	this.val.y = math.prune(clippedY, 3)
 	this.val.y = math.invert(this.val.y);
 }
+
+position.prototype.click = function() {
+	this.val.x = this.clickPos.x;
+	this.val.y = this.clickPos.y;
+	this.scaleNode();
+	this.val["state"] = "click"
+	this.transmit(this.val);
+	this.draw();
+}
+
+position.prototype.move = function() {
+	if (this.clicked) {
+		this.val.x = this.clickPos.x;
+		this.val.y = this.clickPos.y;
+		this.scaleNode();
+		this.val["state"] = "move"
+		this.transmit(this.val);
+		this.draw();
+	}
+}
+
+position.prototype.release = function() {
+	this.val.x = this.clickPos.x;
+	this.val.y = this.clickPos.y;
+	this.scaleNode();
+	this.val["state"] = "release"
+	this.transmit(this.val);
+	this.draw();
+	
+}
+
 
 /** @method animate
 	Adds animation to the widget.
@@ -5246,7 +3880,7 @@ position.prototype.aniBounce = function() {
 position.prototype.customDestroy = function() {
 	nx.removeAni(this.aniBounce);
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],31:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":39}],26:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 var math = require('../utils/math')
@@ -5315,43 +3949,54 @@ range.prototype.draw = function() {
 	with (this.context) {
 		fillStyle = this.colors.fill;
 		fillRect(0,0,this.width,this.height);
+		
+		fillStyle = this.colors.accent;
 	
 		if (!this.hslider) {
-			
-			if (nx.showLabels && this.label) {
-				save();
-	 			translate(this.width/2, 0);
-				rotate(Math.PI/2);
-				this.setFont();
-				fillText(this.label, this.height/2, 0);
-				globalAlpha = 1;
-				restore();
-			}
 
 			var x1 = 0;
 			var y1 = this.height-this.val.stop*this.height;
 			var x2 = this.width;
 			var y2 = this.height-this.val.start*this.height;
 
-			fillStyle = this.colors.accent;
 			fillRect(x1,y1,x2-x1,y2-y1);
-
-		} else {
 			
-			if (nx.showLabels && this.label) {
-				this.setFont();
-				fillText(this.label, this.width/2, this.height/2);
+			if (nx.showLabels) {
+
+				save();
+	 			translate(this.width/2, 0);
+				rotate(Math.PI/2);
+				textAlign = "left";
+				textBaseline = "middle";
+				font = "bold 15px courier";
+				fillStyle = this.colors.accent;
+				globalAlpha = 0.3;
+				fillText(this.label, this.width/2, 0);
 				globalAlpha = 1;
+				restore();
+			
 			}
+		} else {
 
 			var x1 = this.val.start*this.width;
 			var y1 = 0;
 			var x2 = this.val.stop*this.width;
 			var y2 = this.height;
 		   
-		
-			fillStyle = this.colors.accent;
 			fillRect(x1,y1,x2-x1,y2-y1);
+			
+			
+			if (nx.showLabels) {
+
+				textAlign = "center";
+				textBaseline = "middle";
+				font = "bold 15px courier";
+				fillStyle = this.colors.accent;
+				globalAlpha = 0.3;
+				fillText(this.label, this.width/2, this.height/2);
+				globalAlpha = 1;
+			
+			}
 		}
 	}
 }
@@ -5438,9 +4083,9 @@ range.prototype.move = function() {
 			var moveloc = this.clickPos.x/this.width;
 			var movesize = (this.touchdown.y - this.clickPos.y)/this.height;
 		} else {
-			var moveloc = nx.invert(this.clickPos.y/this.height);
+			var moveloc = this.clickPos.y/this.height;
 			var movesize = (this.touchdown.x - this.clickPos.x)/this.width;
-		//	moveloc *= -1;
+			moveloc *= -1;
 			movesize *= -1;
 		}
 		movesize /= 3;
@@ -5461,13 +4106,13 @@ range.prototype.move = function() {
 
 	}
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],32:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":39}],27:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
 
 /** 
-	@class remix (alpha)     
+	@class remix      
 	
 	```html
 	<canvas nx="remix"></canvas>
@@ -5673,7 +4318,7 @@ remix.prototype.move = function(e) {
 		this.scan(this.clickPos.x/this.width)
 	}
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],33:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":39}],28:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 
@@ -5704,34 +4349,28 @@ var select = module.exports = function (target) {
 		| *value* | Text string of option chosen
 	*/
 	this.val = new Object();
+}
+util.inherits(select, widget);
 
+select.prototype.init = function() {
 	
-//	this.canvas.ontouchstart = null;
-//	this.canvas.ontouchmove = null;
-//	this.canvas.ontouchend = null;
+	this.canvas.ontouchstart = null;
+	this.canvas.ontouchmove = null;
+	this.canvas.ontouchend = null;
 	
 	if (this.canvas.getAttribute("choices")) {
 		this.choices = this.canvas.getAttribute("choices");
 		this.choices = this.choices.split(",");
 	}
 
-	var htmlstr = '<select id="'+this.canvasID+'" class="nx" style="height:'+this.height+'px;width:'+this.width+'px;font-size:'+this.height/2+'px;" onchange="'+this.canvasID+'.change(this)"></select><canvas height="1px" width="1px" style="display:none"></canvas>'                   
+	var htmlstr = '<select id="'+this.canvasID+'" style="height:'+this.height+'px;width:'+this.width+'px;font-size:'+this.height/2+'px" onchange="'+this.canvasID+'.change(this)"></select><canvas height="1px" width="1px" style="display:none"></canvas>'                   
 	var canv = this.canvas
-	var cstyle = this.canvas.style
 	var parent = canv.parentNode;
-	var newdiv = document.createElement("span");
+	var newdiv = document.createElement("div");
 	newdiv.innerHTML = htmlstr;
 	parent.replaceChild(newdiv,canv)
-	this.sel = document.getElementById(this.canvasID)
-	this.sel.style.float = "left"
-	this.sel.style.display = "block"
-	for (var prop in cstyle)
-    	this.sel.style[prop] = cstyle[prop];
-
+	
 	this.canvas = document.getElementById(this.canvasID);
-
-    this.canvas.style.backgroundColor = this.colors.fill;
-    this.canvas.style.color = this.colors.black;
 	
 	for (var i=0;i<this.choices.length;i++) {
 		var option=document.createElement("option");
@@ -5740,23 +4379,6 @@ var select = module.exports = function (target) {
 		this.canvas.add(option,null);
 	}
 	
-
-
-
-}
-util.inherits(select, widget);
-
-select.prototype.init = function() {
-
-    this.canvas.style.backgroundColor = this.colors.fill;
-    this.canvas.style.color = this.colors.black;
-	
-	for (var i=0;i<this.choices.length;i++) {
-		var option=document.createElement("option");
-		option.text = this.choices[i];
-		option.value = this.choices[i];
-		this.canvas.add(option,null);
-	}
 }
 
 // should have a modified "set" function
@@ -5764,14 +4386,7 @@ select.prototype.change = function(thisselect) {
 	this.val.text = thisselect.value;
 	this.transmit(this.val);
 }
-
-select.prototype.draw = function() {
-
-    this.canvas.style.backgroundColor = this.colors.fill;
-    this.canvas.style.color = this.colors.black;
-
-}
-},{"../core/widget":3,"util":47}],34:[function(require,module,exports){
+},{"../core/widget":3,"util":39}],29:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -5820,12 +4435,9 @@ var slider = module.exports = function (target) {
 	```
 	*/
 	this.hslider = false;
-	this.label = "";
 	this.handle;
 	this.relhandle;
 	this.cap;
-
-
 	this.init();
 }
 util.inherits(slider, widget);
@@ -5853,50 +4465,55 @@ slider.prototype.draw = function() {
 	with (this.context) {
 		fillStyle = this.colors.fill;
 		fillRect(0,0,this.width,this.height);
+		
+		fillStyle = this.colors.accent;
 	
 		if (!this.hslider) {
-
-			if (nx.showLabels) {
-
-				save();
-	 			translate(this.width/2, 0);
-				rotate(Math.PI/2);
-				this.setFont();
-				fillText(this.label, this.height/2, 0);
-				globalAlpha = 1;
-				restore();
-			
-			}
 
 			var x1 = 0;
 			var y1 = this.height-this.val.value*this.height;
 			var x2 = this.width;
 			var y2 = this.height;
 
-		
-			fillStyle = this.colors.accent;
 			if (this.val.value>0.01) {
 				fillRect(x1,y1,x2-x1,y2-y1);
 			}
-
-		} else {
 			
 			if (nx.showLabels) {
-				this.setFont();
-				fillText(this.label, this.width/2, this.height/2);
+
+				save();
+	 			translate(this.width/2, 0);
+				rotate(Math.PI/2);
+				textAlign = "left";
+				textBaseline = "middle";
+				font = "bold 15px courier";
+				fillStyle = this.colors.accent;
+				globalAlpha = 0.3;
+				fillText(this.label, this.width/2, 0);
 				globalAlpha = 1;
+				restore();
 			
 			}
+		} else {
 
 			var x1 = 0;
 			var y1 = 0;
 			var x2 = this.val.value*this.width;
 			var y2 = this.height;
 		   
-		
-			fillStyle = this.colors.accent;
 			if (this.val.value>0.01) {
 				fillRect(x1,y1,x2-x1,y2-y1);
+			}
+			
+			if (nx.showLabels) {
+				textAlign = "center";
+				textBaseline = "middle";
+				font = "bold 15px courier";
+				fillStyle = this.colors.accent;
+				globalAlpha = 0.3;
+				fillText(this.label, this.width/2, this.height/2);
+				globalAlpha = 1;
+			
 			}
 		}
 	}
@@ -5920,10 +4537,10 @@ slider.prototype.move = function() {
 	if (this.mode=="absolute") {
 		if (this.clicked) {
 			if (!this.hslider) {
-				this.val.value = math.prune((Math.abs((math.clip(this.clickPos.y/this.height, 0, 1)) - 1)),3);
-			} else {	
-				this.val.value = math.prune(math.clip(this.clickPos.x/this.width, 0, 1),3);
-			}
+        this.val.value = math.prune((Math.abs((math.clip(this.clickPos.y/this.height, 0, 1)) - 1)),2);
+      } else {  
+        this.val.value = math.prune(math.clip(this.clickPos.x/this.width, 0, 1),2);
+      }
 			this.draw();
 		}
 	} else if (this.mode=="relative") {
@@ -5938,7 +4555,7 @@ slider.prototype.move = function() {
 	}
 	this.transmit(this.val);
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],35:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":39}],30:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 
@@ -6140,185 +4757,7 @@ string.prototype.pluck = function(which) {
 string.prototype.customDestroy = function() {
 	nx.removeAni(this.draw.bind(this));
 }
-},{"../core/widget":3,"util":47}],36:[function(require,module,exports){
-var math = require('../utils/math')
-var util = require('util');
-var widget = require('../core/widget');
-
-/** 
-	@class tabs   
-	
-	```html
-	<canvas nx="tabs"></canvas>
-	```
-	<canvas nx="tabs" style="margin-left:25px"></canvas>
-*/
-
-var tabs = module.exports = function(target) {
-	
-	this.defaultSize = { width: 150, height: 50 };
-	widget.call(this, target);
-	
-	//define unique attributes
-	this.choice = 0;
-	this.val = {
-		index: 0,
-		text: ""
-	}
-	this.tabwid = 0;
-	this.options = ["one", "two", "three"]
-	//init
-	this.init();
-
-}
-
-util.inherits(tabs, widget);
-
-
-tabs.prototype.init = function() {
-	this.draw();
-}
-
-
-tabs.prototype.draw = function() {
-
-	with (this.context) {
-		fillStyle = this.colors.fill;
-		fillRect(0,0,this.width,this.height)
-
-		textAlign = "center"
-		textBaseline = "middle"
-		font = "normal "+this.height/5+"px courier"
-	}
-
-	this.tabwid = this.width/this.options.length
-
-	for (var i=0;i<this.options.length;i++) {
-		if (i==this.choice) {
-			var tabcol = this.colors.accent;
-			var textcol = this.colors.white;
-		} else {
-			var tabcol = this.colors.fill;
-			var textcol = this.colors.black;
-			globalAlpha = 0.7;
-		}
-		with (this.context) {
-			fillStyle=tabcol;
-			fillRect(this.tabwid*i,0,this.tabwid,this.height)
-			if (i!=this.options.length-1) {
-				beginPath();
-				moveTo(this.tabwid*(i+1),0)
-				lineTo(this.tabwid*(i+1),this.height)
-				lineWidth = 1;
-				strokeStyle = this.colors.border
-				stroke()
-				closePath()
-			}
-			fillStyle=textcol;
-			font = this.fontSize+"px "+this.font;
-			fillText(this.options[i],this.tabwid*i+this.tabwid/2,this.height/2)
-		}
-		
-	}
-}
-
-
-tabs.prototype.click = function() {
-	this.choice = ~~(this.clickPos.x / this.tabwid);
-	this.val = {
-		index: this.choice,
-		text: this.options[this.choice]
-	}
-	this.transmit(this.val)
-	this.draw();
-}
-},{"../core/widget":3,"../utils/math":6,"util":47}],37:[function(require,module,exports){
-var util = require('util');
-var widget = require('../core/widget');
-
-/** 
-	@class text    
-	Text editor. Outputs the typed text string when Enter is pressed. <br> **Note:** Currently the canvas is actaully replaced by an HTML textarea object. Any inline style on your canvas may be lost in this transformation. To style the resultant textarea element, we recommend creating CSS styles for the textarea element using its ID or the textarea tag.
-	```html
-	<canvas nx="text"></canvas>
-	```
-	<canvas nx="text"></canvas>
-*/
-
-var text = module.exports = function (target) {
-	this.defaultSize = { width: 200, height: 100 };
-	widget.call(this, target);
-
-	/** @property {object}  val   
-		| &nbsp; | data
-		| --- | ---
-		| *text* | Text string
-	*/
-	this.val = {
-		text: ""
-	}
-
-	var htmlstr = '<textarea id="'+this.canvasID+'" style="height:'+this.height+'px;width:'+this.width+'px;" onkeydown="'+this.canvasID+'.change(event,this)"></textarea><canvas height="1px" width="1px" style="display:none"></canvas>'                   
-	var canv = this.canvas
-	var cstyle = this.canvas.style
-	var parent = canv.parentNode;
-	var newdiv = document.createElement("span");
-	newdiv.innerHTML = htmlstr;
-	parent.replaceChild(newdiv,canv)
-	this.el = document.getElementById(this.canvasID)
-
-	for (var prop in cstyle)
-    	this.el.style[prop] = cstyle[prop];
-
-	this.el.style.float = "left"
-	this.el.style.display = "block"
-	this.el.style.backgroundColor = this.colors.fill
-	this.el.style.border = "none"
-	this.el.style.color = this.colors.black
-	this.el.style.outline = "none"
-	this.el.style.resize = "none"
-	this.el.style.boxSizing = "border-box"
-	this.el.style.padding = "5px"
-	this.el.style.fontFamily = nx.font
-	this.el.style.fontSize = "16px"
-
-
-	this.canvas = document.getElementById(this.canvasID);
-
-
-}
-util.inherits(text, widget);
-
-text.prototype.init = function() {
-	
-	this.canvas.ontouchstart = null;
-	this.canvas.ontouchmove = null;
-	this.canvas.ontouchend = null;
-
-    this.canvas.style.backgroundColor = this.colors.fill;
-    this.canvas.style.color = this.colors.black;
-	
-}
-
-// should have a modified "set" function
-text.prototype.change = function(e,el) {
-	this.val.text = el.value
-	if (e.which=="13") {
-		this.transmit(this.val)
-		this.val.text = ""
-		this.draw()
-		e.preventDefault()
-	}
-}
-
-text.prototype.draw = function() {
-	// needed especially for ghost
-	this.el.value = this.val.text 
-	
-    this.canvas.style.backgroundColor = this.colors.fill;
-    this.canvas.style.color = this.colors.black;
-}
-},{"../core/widget":3,"util":47}],38:[function(require,module,exports){
+},{"../core/widget":3,"util":39}],31:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -6434,7 +4873,7 @@ tilt.prototype.draw = function() {
 	    }
 
 		fillRect(-this.width,this.height*(this.val.y/2)+this.height/2,this.width*3,this.height*2)
-		font = "bold "+this.height/5+"px "+this.font;
+		font = "bold "+this.height/5+"px gill sans";
 		textAlign = "center";
 		fillText(this.text, this.width/2, this.height*(this.val.y/2)+this.height/2+this.height/15);
 		globalAlpha = 1;
@@ -6452,7 +4891,7 @@ tilt.prototype.customDestroy = function() {
 	window.removeEventListener("deviceorientation",this.boundChromeTilt,false);
 	window.removeEventListener("mozOrientation",this.boundMozTilt,false);
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],39:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":39}],32:[function(require,module,exports){
 var drawing = require('../utils/drawing');
 var util = require('util');
 var widget = require('../core/widget');
@@ -6500,14 +4939,15 @@ toggle.prototype.draw = function() {
 			fillStyle = this.colors.fill;
 		}
 		fillRect(0,0,this.width,this.height);
+		font = "bold "+this.fontsize+"px gill sans"
+		textAlign = "center"
 		if (this.val.value) {
-			this.setFont();
 			fillStyle = this.colors.white
-			globalAlpha = 1;
-			fillText("on", this.width/2, this.height/2);	
+			fillText("on", this.canvas.width/2, this.canvas.height/2 + this.fontsize/3.5 );	
 		} else {
-			this.setFont();
-			fillText("off", this.width/2, this.height/2);
+			globalAlpha = 0.6;
+			fillStyle = this.colors.black
+			fillText("off", this.canvas.width/2, this.canvas.height/2 + this.fontsize/3.5 );
 			globalAlpha = 1;
 		}
 	}
@@ -6525,7 +4965,7 @@ toggle.prototype.click = function() {
 	this.draw();
 	this.transmit(this.val);
 }
-},{"../core/widget":3,"../utils/drawing":5,"util":47}],40:[function(require,module,exports){
+},{"../core/widget":3,"../utils/drawing":5,"util":39}],33:[function(require,module,exports){
 var drawing = require('../utils/drawing');
 var util = require('util');
 var widget = require('../core/widget');
@@ -6540,7 +4980,7 @@ var widget = require('../core/widget');
 */
 
 var typewriter = module.exports = function (target) {
-	this.defaultSize = { width: 300, height: 100 };
+	this.defaultSize = { width: 175, height: 75 };
 	widget.call(this, target);
 
 	
@@ -6582,7 +5022,7 @@ var typewriter = module.exports = function (target) {
 			{ symbol: "delete", value: 46, width: 1.5, on: false  }
 		],
 		[
-			{ symbol: "tab", value: 9, width: 1.5, on: false  },
+			{ symbol: "tab", value: 10, width: 1.5, on: false  },
 			{ symbol: "q", value: 81, width: 1, on: false  },
 			{ symbol: "w", value: 87, width: 1, on: false  },
 			{ symbol: "e", value: 69, width: 1, on: false  },
@@ -6621,9 +5061,9 @@ var typewriter = module.exports = function (target) {
 			{ symbol: "b", value: 66, width: 1, on: false  },
 			{ symbol: "n", value: 78, width: 1, on: false  },
 			{ symbol: "m", value: 77, width: 1, on: false  },
-			{ symbol: ",", value: 188, width: 1, on: false  },
-			{ symbol: ".", value: 190, width: 1, on: false  },
-			{ symbol: "/", value: 191, width: 1, on: false  },
+			{ symbol: ",", value: 10, width: 1, on: false  },
+			{ symbol: ".", value: 10, width: 1, on: false  },
+			{ symbol: "/", value: 10, width: 1, on: false  },
 			{ symbol: "shift", value: 16, width: 2.25, on: false }
 		],
 		[
@@ -6634,10 +5074,10 @@ var typewriter = module.exports = function (target) {
 			{ symbol: "space", value: 32, width: 5, on: false  },
 			{ symbol: "cmd", value: 10, width: 1, on: false  },
 			{ symbol: "opt", value: 10, width: 1, on: false  },
-			{ symbol: "left", value: 37, width: .81, on: false  },
-			{ symbol: "up", value: 38, width: .81, on: false  },
-			{ symbol: "down", value: 40, width: .81, on: false  },
-			{ symbol: "right", value: 39, width: .81, on: false  }
+			{ symbol: "<", value: 37, width: .81, on: false  },
+			{ symbol: "^", value: 38, width: .81, on: false  },
+			{ symbol: "v", value: 39, width: .81, on: false  },
+			{ symbol: ">", value: 40, width: .81, on: false  }
 		]
 	]
 
@@ -6706,9 +5146,11 @@ typewriter.prototype.draw = function() {	// erase
 		}
 
 		if (this.val.on) {
-			this.setFont();
+			globalAlpha = 0.7
 			fillStyle = this.colors.border;
-			font = this.height+"px "+this.font;
+			font = this.height+"px courier";
+			textAlign = "center";
+			textBaseline = "middle";
 			fillText(this.val.key, this.width/2, this.height/2);
 			
 			globalAlpha = 1
@@ -6735,7 +5177,6 @@ typewriter.prototype.click = function(e) {
 typewriter.prototype.type = function(e) {
 	if (this.active) {
 		var currKey = e.which;
-		console.log(currKey)
 		for (var i=0;i<this.rows.length;i++) {
 			for (var j=0;j<this.rows[i].length;j++) {
 				if (currKey == this.rows[i][j].value) {
@@ -6774,7 +5215,7 @@ typewriter.prototype.customDestroy = function() {
 	window.removeEventListener("keydown", this.boundType);
 	window.removeEventListener("keyup", this.boundUntype);
 }
-},{"../core/widget":3,"../utils/drawing":5,"util":47}],41:[function(require,module,exports){
+},{"../core/widget":3,"../utils/drawing":5,"util":39}],34:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -6793,8 +5234,6 @@ var vinyl = module.exports = function (target) {
 	widget.call(this, target);
 	
 	this.circleSize;
-
-  this.lockResize = true;
 
 	/** @property speed The rotation increment. Default is 0.05. Not to be confused with .val.speed (see below) which is the data output. During rotation, .speed will always move towards .defaultSpeed */
 	this.speed = 0.05;
@@ -6920,250 +5359,7 @@ vinyl.prototype.spin = function() {
 vinyl.prototype.customDestroy = function() {
 	nx.removeAni(this.spin.bind(this));
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],42:[function(require,module,exports){
-var math = require('../utils/math')
-var util = require('util');
-var widget = require('../core/widget');
-
-/** 
-	@class windows      
-	Scalable windows
-	```html
-	<canvas nx="windows"></canvas>
-	```
-	<canvas nx="windows" style="margin-left:25px"></canvas>
-*/
-
-var windows = module.exports = function (target) {
-
-	this.defaultSize = { width: 200, height: 200 };
-
-	widget.call(this, target);
-
-	this.val = {
-		items: [],
-		add: false,
-		remove: false,
-		change: false
-	}
-
-	//this.val.items = []
-	this.size = .25;
-	this.meta = false;
-	this.resizing = false;
-	
-	this.init();
-
-	document.addEventListener('keydown',function(e) {
-		if (e.shiftKey && !this.meta) {
-			this.meta = true;
-			this.draw();
-		}
-	}.bind(this))
-	document.addEventListener('keyup',function(e) {
-		if (!e.shiftKey && this.meta) {
-			this.meta = false;
-			this.draw();
-		}
-	}.bind(this))
-}
-util.inherits(windows, widget);
-
-windows.prototype.init = function() {
-	this.draw();
-}
-
-windows.prototype.add = function(x,y,w,h) {
-	this.val.items.push({
-		x: x,
-		y: y,
-		w: w,
-		h: h
-	})
-	this.draw();
-}
-
-windows.prototype.setWindow = function(index, loc) {
-	this.val.items[index] = loc;
-	this.draw();
-}
-
-windows.prototype.remove = function(index) {
-	this.val.items.splice(index,1)
-	this.val.add = false
-	this.val.remove = index
-	this.val.change = false
-	/* this.val = {
-		remove: index,
-		items: this.val.items
-	} */
-	this.transmit(this.val)
-	this.draw();
-}
-
-windows.prototype.draw = function() {
-//	this.erase()
-	with (this.context) {
-
-		if (!this.meta) {
-			fillStyle = this.colors.fill;
-		} else {
-			fillStyle = this.colors.border;
-		}
-
-		fillRect(0,0,this.width,this.height);
-
-		globalAlpha = 0.8;
-	
-		for (var i=0;i<this.val.items.length;i++) {
-			fillStyle = this.colors.accent;
-			var x = this.val.items[i].x*this.width
-			var y = this.val.items[i].y*this.height
-			var w = this.val.items[i].w*this.width
-			var h = this.val.items[i].h*this.height
-			fillRect(x,y,w,h)
-		    
-			strokeStyle = this.colors.fill;
-			lineWidth = 1;
-		    strokeRect(x+w-10,y+h-10,10,10)
-		  //  strokeRect((this.val.items[i].x + this.val.items[i].w/2)*this.width - 10, (this.val.items[i].y + this.val.items[i].h/2)*this.height - 10,10,10)
-		}
-
-		globalAlpha = 1;
-
-	}
-	
-	this.drawLabel();
-}
-
-windows.prototype.click = function() {
-
-	this.holds = false;
-	var cx = this.clickPos.x / this.width;
-	var cy = this.clickPos.y / this.height;
-	for (var i=0;i<this.val.items.length;i++) {
-		if (nx.isInside({ x: cx, y: cy }, this.val.items[i])) {
-			this.holds = i;
-			if (this.clickPos.x > (this.val.items[i].x+this.val.items[i].w)*this.width - 10 && this.clickPos.x < (this.val.items[i].x+this.val.items[i].w)*this.width && this.clickPos.y > (this.val.items[i].y+this.val.items[i].h)*this.height - 10 && this.clickPos.y < (this.val.items[i].y+this.val.items[i].h)*this.height) {
-				this.resizing = true;
-			}
-		}
-	}
-
-	if (this.holds===false) {
-		this.val.items.push({
-			x: cx,
-			y: cy,
-			w: this.size,
-			h: this.size
-		})
-		this.holds = this.val.items.length-1;
-		this.hasMoved = true;
-		this.val.add = this.val.items[this.holds]
-		this.val.remove = false
-		this.val.change = false
-		/* this.val = {
-			add: this.val.items[this.holds],
-			items: this.val.items
-		} */
-		this.transmit(this.val)
-	}
-	if (this.meta) {
-		for (var i=0;i<this.val.items.length;i++) {
-			this.val.items[i].tx = this.val.items[i].x
-			this.val.items[i].ty = this.val.items[i].y
-		}
-		this.tx = cx
-		this.ty = cy
-	}
-	this.draw();
-}
-
-windows.prototype.move = function() {
-	var cx = this.clickPos.x / this.width;
-	var cy = this.clickPos.y / this.height;
-	if (this.resizing) {
-		if (!this.meta) {
-			this.val.items[this.holds].w = cx - this.val.items[this.holds].x
-			this.val.items[this.holds].h = cy - this.val.items[this.holds].y
-			this.val.items[this.holds] = this.restrict(this.val.items[this.holds])
-		} else {
-			for (var i=0;i<this.val.items.length;i++) {
-				this.val.items[i].w = cx - this.val.items[this.holds].x
-				this.val.items[i].h = cy - this.val.items[this.holds].y
-				this.val.items[i] = this.restrict(this.val.items[i])
-			}
-		}
-	} else {
-		if (!this.meta) {
-			this.val.items[this.holds].x = cx;
-			this.val.items[this.holds].y = cy;	
-			this.val.items[this.holds] = this.restrict(this.val.items[this.holds])
-		} else {
-			for (var i=0;i<this.val.items.length;i++) {
-				this.val.items[i].x = (cx - this.tx) + this.val.items[i].tx;
-				this.val.items[i].y = (cy - this.ty) + this.val.items[i].ty;
-				this.val.items[i] = this.restrict(this.val.items[i])	
-			}
-		}	
-	}
-
-
-	
-	this.val.change = true;
-	this.val.add = false;
-	this.val.remove = false;
-	/*this.val = {
-		change: true,
-		items: this.val.items
-	} */
-	this.transmit(this.val)
-	this.draw();
-}
-
-windows.prototype.release = function() {
-	if (!this.hasMoved) {
-		if (this.meta) {
-			this.val.add = false
-			this.val.remove = "all"
-			this.val.change = false
-			/*this.val = {
-				remove: "all",
-				items: this.val.items
-			} */
-			this.val.items = []
-		} else {
-			this.val.add = false
-			this.val.remove = this.holds
-			this.val.change = false
-		/*	this.val = {
-				remove: this.holds,
-				items: this.val.items
-			} */
-			this.val.items.splice(this.holds,1)
-		}
-	}
-	this.resizing = false;
-	this.transmit(this.val);
-	this.draw();
-}
-
-windows.prototype.restrict = function(item) {
-	if (item.x < 0) {
-		item.x = 0
-	}
-	if (item.y < 0) {
-		item.y = 0
-	}
-	if (item.x + item.w > 1) {
-		item.x = 1 - item.w
-	}
-	if (item.y + item.h > 1) {
-		item.y = 1 - item.h
-	}	
-	return item;
-}
-},{"../core/widget":3,"../utils/math":6,"util":47}],43:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":39}],35:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -7466,7 +5662,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],44:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -7491,7 +5687,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],45:[function(require,module,exports){
+},{}],37:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -7556,14 +5752,14 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],46:[function(require,module,exports){
+},{}],38:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],47:[function(require,module,exports){
+},{}],39:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -8138,7 +6334,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":46,"_process":45,"inherits":44}],48:[function(require,module,exports){
+},{"./support/isBuffer":38,"_process":37,"inherits":36}],40:[function(require,module,exports){
 var hasOwn = Object.prototype.hasOwnProperty;
 var toString = Object.prototype.toString;
 var undefined;

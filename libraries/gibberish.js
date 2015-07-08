@@ -1,3 +1,12 @@
+!function (root, factory) {
+  if (typeof define === "function" && define.amd) {
+    define([], factory);
+  } else if (typeof exports === "object") {
+    module.exports = factory();
+  } else {
+  root.Gibberish = factory();
+  }
+}(this, function () {
 /**#Gibberish - Miscellaneous
 Gibberish is the main object used to manage the audio graph and perform codegen functions. All constructors are also inside of the Gibberish object. Gibberish can automatically generate an appropriate web audio callback for you; if you want to use this you must execute the Gibberish.init() command before creating any Gibberish ugens.
 
@@ -38,7 +47,7 @@ Object. Used in the codegen process to make sure codegen for each ugen is only p
 **/
 
 
-Gibberish = {
+var Gibberish = {
   memo              : {},
   codeblock         : [],
   analysisCodeblock : [],
@@ -55,7 +64,7 @@ Gibberish = {
   callbackObjects   : [],        // ugen function callbacks used in main audio callback
   analysisCallbackArgs    : [],
   analysisCallbackObjects : [],
-  
+  onBlock: null,
 /**###Gibberish.createCallback : method
 Perform codegen on all dirty ugens and re-create the audio callback. This method is called automatically in the default Gibberish sample loop whenever Gibberish.isDirty is true.
 **/
@@ -144,7 +153,9 @@ param **Audio Event** : Object. The HTML5 audio event object.
         objs = me.callbackObjects.slice(0),
         callbackArgs, callbackBody, _callback, val
 
-        objs.unshift(0)
+    if( me.onBlock !== null ) me.onBlock( me.context )
+    
+    objs.unshift(0)
         
 		for(var i = 0, _bl = e.outputBuffer.length; i < _bl; i++){
       
@@ -310,11 +321,12 @@ param **readFn** : Function. The audio callback to use.
 Create a callback and start it running. Note that in iOS audio callbacks can only be created in response to user events. Thus, in iOS this method assigns an event handler to the HTML body that creates the callback as soon as the body is touched; at that point the event handler is removed. 
 **/   
   init : function() {
-    Gibberish.out = new Gibberish.Bus2();
-    Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
-    Gibberish.dirty(Gibberish.out);
-    
-    var bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0], audioContext
+    // TODO: GET A BETTER TEST FOR THIS. The problem is that browserify adds a process object... not sure how robust
+    // testing for the presence of the version property will be
+    var isNode = typeof global !== 'undefined',
+        bufferSize = typeof arguments[0] === 'undefined' ? 1024 : arguments[0], 
+        audioContext,
+        start
     
     if( typeof webkitAudioContext !== 'undefined' ) {
       audioContext = webkitAudioContext
@@ -324,30 +336,34 @@ Create a callback and start it running. Note that in iOS audio callbacks can onl
 
     // we will potentially delay start of audio until touch of screen for iOS devices
     start = function() {
-      
       if( typeof audioContext !== 'undefined' ) {
-        document.getElementsByTagName('body')[0].removeEventListener('touchstart', start);
-        Gibberish.context = new audioContext();
-        Gibberish.node = Gibberish.context.createScriptProcessor(bufferSize, 2, 2, Gibberish.context.sampleRate);	
-        Gibberish.node.onaudioprocess = Gibberish.audioProcess;
-        Gibberish.node.connect(Gibberish.context.destination);
-    
-        if('ontouchstart' in document.documentElement){ // required to start audio under iOS 6
-          var mySource = Gibberish.context.createBufferSource();
-          mySource.connect(Gibberish.context.destination);
-          mySource.noteOn(0);
+        if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
+          window.removeEventListener('touchstart', start);
+
+          if('ontouchstart' in document.documentElement){ // required to start audio under iOS 6
+            var mySource = Gibberish.context.createBufferSource();
+            mySource.connect(Gibberish.context.destination);
+            mySource.noteOn(0);
+          }
         }
-      }else if( navigator.userAgent.indexOf( 'Firefox' ) === -1 ){
-        Gibberish.AudioDataDestination(44100, Gibberish.audioProcessFirefox);
-        Gibberish.context = { sampleRate: 44100 } // needed hack to determine samplerate in ugens
       }else{
         alert('Your browser does not support javascript audio synthesis. Please download a modern web browser that is not Internet Explorer.')
       }
+      
       if( Gibberish.onstart ) Gibberish.onstart()
     }
     
-    if('ontouchstart' in document.documentElement) {
-      document.getElementsByTagName('body')[0].addEventListener('touchstart', start);
+    Gibberish.context = new audioContext();
+    Gibberish.node = Gibberish.context.createScriptProcessor(bufferSize, 2, 2, Gibberish.context.sampleRate);	
+    Gibberish.node.onaudioprocess = Gibberish.audioProcess;
+    Gibberish.node.connect(Gibberish.context.destination);
+    
+    Gibberish.out = new Gibberish.Bus2();
+    Gibberish.out.codegen(); // make sure bus is first upvalue so that clearing works correctly
+    Gibberish.dirty(Gibberish.out);
+    
+    if( document && document.documentElement && 'ontouchstart' in document.documentElement ) {
+      window.addEventListener('touchstart', start);
     }else{
       start();
     }
@@ -1348,7 +1364,8 @@ param **amp** Number. The amplitude to be used to calculate output.
     //   }
     //   //console.log( "FLIP", sign, signHistory, count, sync )
     // }
-    if( sign !== 0 ) signHistory = sign
+    // 
+    // if( sign !== 0 ) signHistory = sign
     
     return ( val1 + ( frac * (val2 - val1) ) ) * amp;
   }
@@ -2305,14 +2322,21 @@ Gibberish.Line = function(start, end, time, loops) {
       this.time = time
       
       incr = (end - out) / time
-    }
+    },
+    
+    getPhase: function() { return phase },
+    getIncr: function() { return incr },
+    getOut: function() { return out }
 	};
-
+  
 	var phase = 0,
 	    incr = (end - start) / time,
       out
   
+  //console.log("INCREMENT", incr, end, start, time )
+  
 	this.callback = function(start, end, time, loops) {
+    var incr = (end - start) / time
 		out = phase < time ? start + ( phase++ * incr) : end;
 				
 		phase = (out >= end && loops) ? 0 : phase;
@@ -2320,12 +2344,210 @@ Gibberish.Line = function(start, end, time, loops) {
 		return out;
 	};
   
+  this.setPhase = function(v) { phase = v; }
+  
   Gibberish.extend(this, that);
+  
   this.init();
 
   return this;
 };
 Gibberish.Line.prototype = Gibberish._envelope;
+
+Gibberish.Ease = function( start, end, time, easein, loops ) {
+  var sqrt = Math.sqrt, out = 0, phase = 0
+      
+  start = start || 0
+  end = end || 1
+  time = time || Gibberish.context.sampleRate
+  loops = loops || false
+  easein = typeof easein === 'undefined' ? 1 : easein
+  
+	var that = { 
+		name:		'ease',
+    properties : {},
+    retrigger: function( end, time ) {
+      phase = 0;
+      this.start = out
+      this.end = end
+      this.time = time      
+    },
+    
+    getPhase: function() { return phase },
+    getOut: function() { return out }
+	};
+  
+	this.callback = function() {
+    var x = phase++ / time,
+        y = easein ? 1 - sqrt( 1 - x * x ) : sqrt( 1 - ((1-x) * (1-x)) )
+    
+    out = phase < time ? start + ( y * ( end - start ) ) : end
+    
+		//out = phase < time ? start + ( phase++ * incr) : end;
+				
+		phase = (out >= end && loops) ? 0 : phase;
+		
+		return out;
+	};
+  
+  this.setPhase = function(v) { phase = v; }
+  this.setEase = function(v) {
+    easein = v
+  }
+  
+  Gibberish.extend(this, that);
+  
+  this.init();
+
+  return this;
+};
+Gibberish.Ease.prototype = Gibberish._envelope;
+
+// quadratic bezier
+// adapted from http://www.flong.com/texts/code/shapers_bez/
+Gibberish.Curve = function( start, end, time, a, b, fadeIn, loops ) {
+  var sqrt = Math.sqrt, 
+      out = 0,
+      phase = 0
+      
+      console.log("FDAE IN ", fadeIn )
+  start = start || 0
+  end = end || 1
+  time = time || Gibberish.context.sampleRate
+  a = a || .940
+  b = b || .260
+  loops = loops || false
+  fadeIn = typeof fadeIn === 'undefined' ? 1 : fadeIn
+  
+  console.log("FADE IN", fadeIn )
+  
+	var that = { 
+		name:		'curve',
+
+    properties : {},
+    
+    retrigger: function( end, time ) {
+      phase = 0;
+      this.start = out
+      this.end = end
+      this.time = time
+      
+      incr = (end - out) / time
+    },
+    
+    getPhase: function() { return phase },
+    getOut: function() { return out }
+	};
+  
+	this.callback = function() {
+    var x = phase++ / time,
+        om2a = 1 - 2 * a,
+        t = ( sqrt( a*a + om2a*x ) - a ) / om2a,
+        y = (1-2*b) * (t*t) + (2*b) * t
+    
+    out = phase < time ? start + ( y * ( end - start ) ) : end
+    
+    if( !fadeIn ) out =  1 - out
+    
+		//out = phase < time ? start + ( phase++ * incr) : end;
+				
+		phase = (out >= end && loops) ? 0 : phase;
+		
+		return out;
+	};
+  
+  this.setPhase = function(v) { phase = v; }
+  
+  Gibberish.extend(this, that);
+  
+  this.init();
+
+  return this;
+};
+Gibberish.Curve.prototype = Gibberish._envelope;
+
+Gibberish.Lines = function( values, times, loops ) {
+  var out = values[0],
+      phase = 0,
+      valuesPhase = 1,
+      timesPhase = 0,
+      targetValue = 0,
+      targetTime = 0,
+      end = false,
+      incr
+  
+  
+  if( typeof values === 'undefined' ) values = [ 0,1 ]
+  if( typeof times  === 'undefined' ) times  = [ 44100 ]  
+    
+  targetValue = values[ valuesPhase ]
+  targetTime  = times[ 0 ]
+  
+  incr = ( targetValue - values[0] ) / targetTime
+  //console.log( "current", out, "target", targetValue, "incr", incr )
+  
+  loops = loops || false
+  
+	var that = { 
+		name:		'lines',
+
+    properties : {},
+    
+    retrigger: function() {
+      phase = 0
+      out = values[0]
+      targetTime = times[ 0 ]
+      targetValue = values[ 1 ]
+      valuesPhase = 1
+      timesPhase = 0
+      incr = ( targetValue - out ) / targetTime
+      end = false
+    },
+    
+    getPhase: function() { return phase },
+    getOut:   function() { return out }
+	};
+  
+  that.run = that.retrigger
+  
+	this.callback = function() {
+    if( phase >= targetTime && !end ) {
+      if( valuesPhase < values.length - 1 ) {
+        var timeStep = times[ ++timesPhase % times.length ]
+        targetTime = phase + timeStep
+        targetValue = values[ ++valuesPhase % values.length ]
+        incr = ( targetValue - out ) / timeStep        
+      }else{
+        if( !loops ) {
+          end = true
+          out = values[ values.length - 1 ]
+        }else{
+          phase = 0
+          out = values[0]
+          targetTime = times[ 0 ]
+          targetValue = values[ 1 ]
+          valuesPhase = 1
+          timesPhase = 0
+          incr = ( targetValue - out ) / targetTime
+        }
+      }
+    }else if( !end ) {
+      out += incr
+      phase++
+    }
+		
+		return out;
+	};
+  
+  this.setPhase = function(v) { phase = v; }
+  
+  Gibberish.extend(this, that);
+  
+  this.init();
+
+  return this;
+};
+Gibberish.Lines.prototype = Gibberish._envelope;
 
 Gibberish.AD = function(_attack, _decay) {
   var phase = 0,
@@ -2405,7 +2627,7 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
     rt = rt === 1 ? 1 : releaseTrigger;
 		if(state === 0){
 			val = phase / attack * attackLevel;
-			if(++phase / attack === 1) {
+			if(++phase / attack >= 1) {
 				state++;
 				phase = decay;
 			}
@@ -2427,7 +2649,7 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
         phase = release;
         obj.releaseTrigger = 0;
         rt = 0;
-      }else if(phase-- === 0 && !obj.requireReleaseTrigger) {
+      }else if(phase-- <= 0 && !obj.requireReleaseTrigger) {
 				state++;
 				phase = release;
 			}
@@ -2443,6 +2665,7 @@ Gibberish.ADSR = function(attack, decay, sustain, release, attackLevel, sustainL
   this.call = function() {
     return this.callback( this.attack, this.decay, this.sustain, this.release, this.attackLevel, this.sustainLevel, this.releaseTrigger )
   };
+  this.getPhase = function() { return phase; };
 	this.setPhase = function(newPhase) { phase = newPhase; };
 	this.setState = function(newState) { state = newState; phase = 0; };
 	this.getState = function() { return state; };		
@@ -2600,6 +2823,8 @@ Gibberish.Follow = function() {
     mult : 1,
     useAbsoluteValue:true // for amplitude following, false for other values
   };
+  
+  this.storage = [];
     
   var abs = Math.abs,
       history = [0],
@@ -2632,11 +2857,13 @@ Gibberish.Follow = function() {
   
   var oldBufferSize = this.__lookupSetter__( 'bufferSize' ),
       bs = this.bufferSize
-      
+  
   Object.defineProperty( this, 'bufferSize', {
     get: function() { return bs },
     set: function(v) { bs = v; sum = 0; history = [0]; index = 0; }
   })
+  
+  this.getStorage = function() { return this.storage; }
 };
 Gibberish.Follow.prototype = Gibberish._analysis;
 
@@ -2791,6 +3018,47 @@ Gibberish.Distortion = function() {
 };
 Gibberish.Distortion.prototype = Gibberish._effect;
 
+/**#Gibberish.Gain - FX
+Amplitude attenutation / gain.
+  
+## Example Usage##
+`a = new Gibberish.Synth({ attack:44, decay:44100 });  
+b = new Gibberish.Distortion({ input:a, amount:30 })
+c = new Gibberish.Gain({ input:b, amount:.5 }).connect()
+`  
+## Constructor   
+**param** *properties*: Object. A dictionary of property values (see below) to set for the synth on initialization.
+- - - -
+**/
+/**###Gibberish.Gain.amount : property  
+Number. The amount of gain to multiply the inpyt signal by.
+**/
+Gibberish.Gain = function() {  
+  
+  Gibberish.extend(this, {
+    name : 'gain',
+    
+    properties : {
+      input  : 0,
+      amount : 1,
+    },
+    
+    callback : function(input, amount) {
+      if(typeof input === 'number') {
+        input *= amount;
+      }else{
+        input[0] *=amount;
+        input[1] *=amount;
+      }
+  		return input;
+    },
+  })
+  .init()
+  .processProperties(arguments);
+  
+};
+Gibberish.Gain.prototype = Gibberish._effect;
+
 /**#Gibberish.Delay - FX
 A simple echo effect.
   
@@ -2818,21 +3086,22 @@ Gibberish.Delay = function() {
   
   Gibberish.extend(this, {
   	name:"delay",
-  	properties:{ input:0, time: 22050, feedback: .5, wet:1, dry:1 },
+  	properties:{ input:0, time: 22050, feedback: .5, wet:1, dry:1, rate:1 },
 				
-  	callback : function(sample, time, feedback, wet, dry) {
+  	callback : function(sample, time, feedback, wet, dry, rate ) {
       var channels = typeof sample === 'number' ? 1 : 2;
       
   		var _phase = phase++ % 88200;
+      time = time / rate;
+  		var delayPos = (_phase + ( time | 0 )) % 88200;
       
-  		var delayPos = (_phase + (time | 0)) % 88200;
       if(channels === 1) {
-  			buffers[0][delayPos] =  ( sample + buffers[0][_phase] ) * feedback;
+  			buffers[0][delayPos] =  sample + (buffers[0][_phase] ) * feedback;
         sample = (sample * dry) + (buffers[0][_phase] * wet);
       }else{
-  			buffers[0][delayPos] =  (sample[0] + buffers[0][_phase]) * feedback;
+  			buffers[0][delayPos] =  sample[0] + buffers[0][_phase] * feedback;
         sample[0] = (sample[0] * dry) + (buffers[0][_phase] * wet);
-  			buffers[1][delayPos] =  (sample[1] + buffers[1][_phase]) * feedback;
+  			buffers[1][delayPos] =  sample[1] + buffers[1][_phase] * feedback;
         sample[1] = (sample[1] * dry) + (buffers[1][_phase] * wet);
       }
       
@@ -3358,11 +3627,14 @@ Number. 0..50. Values above 4.5 are likely to produce shrieking feedback. You ar
 Number. 0..3. "LP" = lowpass, "HP" = highpass, "BP" = bandpass
 **/
 Gibberish.Biquad = function() {
-  var _x1 = [0,0],
-      _x2 = [0,0],
-      _y1 = [0,0],
-      _y2 = [0,0],
-      x1 = x2 = y1 = y2 = 0,
+  var x1L = 0,
+      x2L = 0,
+      y1L = 0,
+      y2L = 0,
+      x1R = 0,
+      x2R = 0,
+      y1R = 0,
+      y2R = 0,
       out = [0,0],
 	    b0 = 0.001639,
 	    b1 = 0.003278,
@@ -3434,32 +3706,28 @@ Gibberish.Biquad = function() {
     },
 
     callback: function( x ) {
-      var channels = typeof x === 'number' ? 1 : 2,
+      var channels = isNaN( x ) ? 2 : 1,
           outL = 0,
           outR = 0,
           inL = channels === 1 ? x : x[0];
       
-      //outL = b0 * inL + b1 * x1[0] + b2 * x2[0] - a1 * y1[0] - a2 * y2[0];
-      outL = b0 * inL + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
-      
-      // x2[0] = x1[0];
-      // x1[0] = x[0];
-      // y2[0] = y1[0];
-      // y1[0] = outL;
-      
-      x2 = x1;
-      x1 = x;
-      y2 = y1;
-      y1 = outL;
-            
+      //if( _phase++ % 22050 === 0 ) console.log( "X IS ", typeof x )
+
+      outL = b0 * inL + b1 * x1L + b2 * x2L - a1 * y1L - a2 * y2L;
+
+      x2L = x1L;
+      x1L = inL;
+      y2L = y1L;
+      y1L = outL;
+
       if(channels === 2) {
         inR = x[1];
-        outR = b0 * inR + b1 * x1[1] + b2 * x2[1] - a1 * y1[1] - a2 * y2[1];
-        x2[1] = x1[1];
-        x1[1] = x[1];
-        y2[1] = y1[1];
-        y1[1] = outR;
-        
+        outR = b0 * inR + b1 * x1R + b2 * x2R - a1 * y1R - a2 * y2R;
+        x2R = x1R;
+        x1R = inR;
+        y2R = y1R;
+        y1R = outR;
+
         out[0] = outL;
         out[1] = outR;
       }
@@ -3968,6 +4236,105 @@ Gibberish.Reverb = function() {
 };
 Gibberish.Reverb.prototype = Gibberish._effect;
 
+/**#Gibberish.StereoReverb - FX
+stereo version of the reverb effect
+ 
+## Example Usage##
+`a = new Gibberish.Synth({ attack:88200, decay:88200, pan:-1 });  
+b = new Gibberish.StereoReverb({input:a, roomSize:.5, wet:1, dry;.25}).connect();
+a.note(440);
+`  
+##Constructor
+**param** *properties* : Object. A dictionary of property keys and values to assign to the Gibberish.BufferShuffler object
+**/
+/**###Gibberish.Reverb.roomSize : property
+Float. 0..1. The size of the room being emulated.
+**/	
+/**###Gibberish.Reverb.damping : property
+Float. Attenuation of high frequencies that occurs.
+**/	
+/**###Gibberish.Reverb.wet : property
+Float. Default = .75. The amount of processed signal that is output.  
+**/	
+/**###Gibberish.Reverb.dry : property
+Float. Default = .5. The amount of dry signal that is output
+**/	
+Gibberish.StereoReverb = function() {
+  var tuning =	{
+		    combCount: 		    8,
+		    combTuning: 	    [1116, 1188, 1277, 1356, 1422, 1491, 1557, 1617],
+                          
+		    allPassCount: 	  4,
+		    allPassTuning: 	  [556, 441, 341, 225],
+		    allPassFeedback:  0.5,
+                          
+		    fixedGain: 		    0.015,
+		    scaleDamping: 	  0.4,
+                          
+		    scaleRoom: 		    0.28,
+		    offsetRoom: 	    0.7,
+                          
+		    stereoSpread: 	  23
+		},
+    feedback = .84,
+    combsL = [], combsR = [],
+    apfsL  = [], apfsR = [],
+    output   = [0,0],
+    phase  = 0;
+    
+	Gibberish.extend(this, {
+		name:		"reverb",
+    
+		roomSize:	.5,
+    
+    properties: {
+      input:    0,
+  		wet:		  .5,
+  		dry:		  .55,
+      roomSize: .84,
+      damping:  .5,
+    },
+    
+    callback : function(sample, wet, dry, roomSize, damping) {
+      var channels = typeof sample === 'object' ? 2 : 1,
+          l = sample[0],
+          r = channels === 1 ? l : sample[1],
+          _outL = outL = l * .015,
+          _outR = outR = r * .015;
+						
+			for(var i = 0; i < 8; i++) { // parallel
+				outL += combsL[ i ]( _outL, roomSize * .98, (damping * .4)); // .98 is scaleRoom + offsetRoom, .4 is scaleDamping
+        outR += combsR[ i ]( _outR, roomSize * .98, (damping * .4));       
+			}
+							
+			for(var i = 0; i < 4; i++) {
+				outL = apfsL[ i ]( outL );	
+				outR = apfsR[ i ]( outR );	        
+			}
+      
+      output[0] = (l * dry) + (outL * wet);
+      output[1] = (r * dry) + (outR * wet);
+
+  		return output;
+  	},
+	})  
+  .init()
+  .processProperties(arguments);
+      
+  this.setFeedback = function(v) { feedback = v }
+  
+	for(var i = 0; i < 8; i++){
+		combsL.push( new Gibberish.Comb( tuning.combTuning[i] ).callback );
+    combsR.push( new Gibberish.Comb( tuning.combTuning[i] ).callback );
+	}
+  
+	for(var i = 0; i < 4; i++){
+		apfsL.push( new Gibberish.AllPass(tuning.allPassTuning[i], tuning.allPassFeedback ).callback );
+    apfsR.push( new Gibberish.AllPass(tuning.allPassTuning[i], tuning.allPassFeedback ).callback );    
+	}
+};
+Gibberish.StereoReverb.prototype = Gibberish._effect;
+
 /**#Gibberish.Granulator - FX
 A granulator that operates on a buffer of samples. You can get the samples from a [Sampler](javascript:displayDocs('Gibberish.Sampler'\))
 object.
@@ -4029,7 +4396,9 @@ Gibberish.Granulator = function(properties) {
       _out        = [0,0],
       rndf        = Gibberish.rndf,
       numberOfGrains = properties.numberOfGrains || 20;
-      
+  
+      console.log( "NUMBER OF GRAINS", numberOfGrains )
+  
 	Gibberish.extend(this, { 
 		name:		        "granulator",
 		bufferLength:   88200,
@@ -4112,6 +4481,8 @@ Gibberish.Granulator = function(properties) {
   .init()
   .processProperties(arguments);
   
+  
+  
 	for(var i = 0; i < numberOfGrains; i++) {
 		grains[i] = {
 			pos : self.position + Gibberish.rndf(self.positionMin, self.positionMax),
@@ -4121,7 +4492,11 @@ Gibberish.Granulator = function(properties) {
 		grains[i].end = grains[i].pos + self.grainSize;
 		grains[i].fadeAmount = grains[i]._speed * (self.fade * self.grainSize);
 		grains[i].pan = Gibberish.rndf(self.spread * -1, self.spread);
+    
+    console.log( "GRAIN", i, "POS", grains[i].pos, "SPEED", grains[i]._speed )
 	}
+  
+  this.grains = grains
 			
 	/*if(typeof properties.input !== "undefined") { 
 			this.shouldWrite = true;
@@ -4218,13 +4593,18 @@ param **amp** Number. Optional. The volume to use.
 	this.note = function(frequency, amp) {
     if( amp !== 0 ) {
   		if( typeof this.frequency !== 'object' ){
-        if( useADSR && frequency === lastFrequency ) {
+        if( useADSR && frequency === lastFrequency && properties.requireReleaseTrigger ) {
           this.releaseTrigger = 1;
+          lastFrequency = null
           return;
         }
         
         this.frequency = lastFrequency = frequency;
         this.releaseTrigger = 0;
+        
+        if( typeof frequency === 'object' ) {
+          Gibberish.dirty( this )
+        }
       }else{
         this.frequency[0] = lastFrequency = frequency;
         this.releaseTrigger = 0;
@@ -4341,6 +4721,10 @@ Gibberish.PolySynth = function() {
   		glide:			0,
       attack: 22050,
       decay:  22050,
+      sustain:22050,
+      release:22050,
+      attackLevel: 1,
+      sustainLevel: .5,      
       pulsewidth:.5,
       waveform:"PWM",
     },
@@ -4371,8 +4755,12 @@ param **amp** Number. Optional. The volume to use.
       for(var i = 0; i < this.maxVoices; i++) {
         var props = {
           waveform: this.waveform,
-          attack:   this.attack,
-          decay:    this.decay,
+    			attack: 	this.attack,
+    			decay:		this.decay,
+          sustain:  this.sustain,
+          release:  this.release,
+          attackLevel: this.attackLevel,
+          sustainLevel: this.sustainLevel,
           pulsewidth: this.pulsewidth,
           channels: 2,
           amp:      1,
@@ -4483,13 +4871,17 @@ param **amp** Number. Optional. The volume to use.
 	this.note = function(frequency, amp) {
     if( amp !== 0 ) {
   		if(typeof this.frequency !== 'object'){
-        if( useADSR && frequency === lastFrequency ) {
+        if( useADSR && frequency === lastFrequency && properties.requireReleaseTrigger ) {
           this.releaseTrigger = 1;
+          lastFrequency = null
           return;
         }
-        
+
         this.frequency = lastFrequency = frequency;
         this.releaseTrigger = 0;
+        if( typeof frequency === 'object' ) {
+          Gibberish.dirty( this )
+        }
       }else{
         this.frequency[0] = lastFrequency = frequency;
         this.releaseTrigger = 0;
@@ -4608,6 +5000,10 @@ Gibberish.PolySynth2 = function() {
       glide:			0,
       attack: 22050,
       decay:  22050,
+      sustain:22050,
+      release:22050,
+      attackLevel: 1,
+      sustainLevel: .5,      
       pulsewidth:.5,
       resonance: 3.5,
       cutoff:.25,
@@ -4641,8 +5037,12 @@ param **amp** Number. Optional. The volume to use.
       this.dirty = true;
       for(var i = 0; i < this.maxVoices; i++) {
         var props = {
-          attack:   this.attack,
-          decay:    this.decay,
+    			attack: 	this.attack,
+    			decay:		this.decay,
+          sustain:  this.sustain,
+          release:  this.release,
+          attackLevel: this.attackLevel,
+          sustainLevel: this.sustainLevel,
           pulsewidth: this.pulsewidth,
           channels: 2,
           amp:      1,
@@ -4736,15 +5136,21 @@ param **amp** Number. Optional. The volume to use.
 **/
 
 	this.note = function(frequency, amp) {
+    //console.log( frequency, lastFrequency, this.releaseTrigger, amp )
     if( amp !== 0 ) {
   		if(typeof this.frequency !== 'object'){
-        if( useADSR && frequency === lastFrequency ) {
+        if( useADSR && frequency === lastFrequency && properties.requireReleaseTrigger ) {
           this.releaseTrigger = 1;
+          lastFrequency = null
           return;
         }
         
         this.frequency = lastFrequency = frequency;
         this.releaseTrigger = 0;
+        
+        if( typeof frequency === 'object' ) {
+          Gibberish.dirty( this );
+        }
       }else{
         this.frequency[0] = lastFrequency = frequency;
         this.releaseTrigger = 0;
@@ -4856,6 +5262,10 @@ Gibberish.PolyFM = function() {
       glide:		 0,
       attack: 22050,
       decay:  22050,
+      sustain:22050,
+      release:22050,
+      attackLevel: 1,
+      sustainLevel: .5,
       index:  5,
       cmRatio:2,
     },
@@ -4886,6 +5296,10 @@ param **amp** Number. Optional. The volume to use.
     		var props = {
     			attack: 	this.attack,
     			decay:		this.decay,
+          sustain:  this.sustain,
+          release:  this.release,
+          attackLevel: this.attackLevel,
+          sustainLevel: this.sustainLevel,
     			cmRatio:	this.cmRatio,
     			index:		this.index,
           channels: 2,
@@ -4987,7 +5401,8 @@ Gibberish.Sampler = function() {
 	    out = [0,0],
       buffer = null,
       bufferLength = 1,
-      self = this;
+      self = this,
+      count = 0;
       
 	Gibberish.extend(this, {
 		name: 			"sampler",
@@ -5018,7 +5433,7 @@ param **buffer** Object. The decoded sampler buffers from the audio file
 		_onload : 		function(decoded) {
 			buffer = decoded.channels[0]; 
 			bufferLength = decoded.length;
-					
+			self.length = bufferLength
 			self.end = bufferLength;
       self.length = phase = bufferLength;
       self.isPlaying = true;
@@ -5137,6 +5552,8 @@ param **amp** Number. Optional. The volume to use.
         case 'object' :
           if( Array.isArray(pitch) ) {
             this.pitch = pitch[ 0 ]
+          }else{
+            this.pitch = pitch
           }
           break;
       }
@@ -5148,30 +5565,38 @@ param **amp** Number. Optional. The volume to use.
       // }
       
 			if(typeof amp === 'number') this.amp = amp;
-					
+			
 			if(this.function !== null) {
 				this.isPlaying = true;	// needed to allow playback after recording
         
         var __pitch;// = typeof this.pitch === 'number' || typeof this.pitch === 'function' ? this.pitch : this.pitch[0];  // account for modulations
-        
+                
         switch( typeof this.pitch ) {
           case 'number' :
             __pitch = this.pitch
             break;
           case 'function' :
-            __pitch = this.pitch()
+            __pitch = this.pitch.getValue ? this.pitch.getValue() : this.pitch()
             break;
           case 'object' :
-            __pitch = Array.isArray( this.pitch ) ? this.pitch[ 0 ] : this.pitch
+            if( Array.isArray( this.pitch ) ) {
+              __pitch = this.pitch[ 0 ]
+            } else {
+              __pitch = this.pitch.getValue ? this.pitch.getValue() : this.pitch.input.getValue()              
+            }
+            
             if( typeof __pitch === 'function' ) __pitch = __pitch()
+            
             break;
         }
-
-        if( __pitch > 0 || typeof __pitch === 'object' ) {
+        
+        if( __pitch > 0 ) { //|| typeof __pitch === 'object' || typeof this.pitch === 'function' ) {
           phase = this.start;
 				}else{
           phase = this.end;
 				}
+        
+        Gibberish.dirty( this )
         
         //this.pitch = __pitch;
 			}
@@ -5226,7 +5651,11 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
   					phase = loops ? end : phase;
   				}
   			}
-  			return panner(val * amp, pan, out);
+        // var __out = panner(val * amp, pan, out);
+        // if( count++ % 22050 === 0 ) console.log( __out )
+        // if( ! isNaN( __out ) ) {console.log("CRAP", __out )}
+        // return __out
+        return panner(val * amp, pan, out);
   		}
   		phase = loops && _pitch > 0 ? start : phase;
   		phase = loops && _pitch < 0 ? end : phase;
@@ -5238,7 +5667,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
   .init()
   .oscillatorInit()
   .processProperties(arguments);
-
+  
 	if(typeof arguments[0] !== "undefined") {
 		if(typeof arguments[0] === "string") {
 			this.file = arguments[0];
@@ -5299,6 +5728,9 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
     xhr.onload = function( e ) { initSound( this.response ) }
     xhr.send()
     
+    console.log("now loading sample", self.file )
+    xhr.onerror = function( e ) { console.error( "Sampler file loading error", e )}
+    
     function initSound( arrayBuffer ) {
       Gibberish.context.decodeAudioData(arrayBuffer, function(_buffer) {
         buffer = _buffer.getChannelData(0)
@@ -5306,7 +5738,7 @@ _pitch, amp, isRecording, isPlaying, input, length, start, end, loops, pan
         self.isPlaying = true;
   			self.buffers[ self.file ] = buffer;
 
-  			//console.log("LOADED", self.file, bufferLength);
+  			console.log("sample loaded | ", self.file, " | length | ", bufferLength);
   			Gibberish.audioFiles[self.file] = buffer;
 			
         if(self.onload) self.onload();
@@ -5454,6 +5886,7 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
   		if(typeof this.frequency !== 'object'){
         if( useADSR && frequency === lastFrequency && amp === 0) {
           this.releaseTrigger = 1;
+          lastFrequency = null
           return;
         }
         if( amp !== 0 ) {
@@ -5474,19 +5907,35 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
   	},
 	});
   
-	var waveform = this.waveform;
+	var waveform = waveform1 = waveform2 = waveform3 = this.waveform;
 	Object.defineProperty(this, "waveform", {
 		get: function() { return waveform; },
 		set: function(value) {
 			if(waveform !== value) {
 				waveform = value;
 						
-				osc1 = new Gibberish[value]().callback;
-				osc2 = new Gibberish[value]().callback;
-				osc3 = new Gibberish[value]().callback;
+				osc1 = new Gibberish[ value ]().callback;
+				osc2 = new Gibberish[ value ]().callback;
+				osc3 = new Gibberish[ value ]().callback;
 			}
 		},
 	});
+  
+  Object.defineProperties( this, {
+    waveform1: {
+      get: function() { return waveform1 },
+      set: function(v) { waveform1 = v; osc1 = new Gibberish[ v ]().callback; }
+    },
+    waveform2: {
+      get: function() { return waveform2 },
+      set: function(v) { waveform2 = v; osc2 = new Gibberish[ v ]().callback; }
+    },
+    waveform3: {
+      get: function() { return waveform3 },
+      set: function(v) { waveform3 = v; osc3 = new Gibberish[ v ]().callback; }
+    },
+  })
+  
   
 	var _envelope = new Gibberish.AD(this.attack, this.decay),
       envstate  = _envelope.getState,
@@ -5498,7 +5947,9 @@ param **amp** : Optional. Float. The volume of the note, usually between 0..1. T
       lag       = new Gibberish.OnePole().callback,      
     	panner    = Gibberish.makePanner(),
     	out       = [0,0];
-    
+  
+  this.envelope = _envelope
+  
   this.callback = function(attack, decay, cutoff, resonance, amp1, amp2, amp3, filterMult, isLowPass, pulsewidth, masterAmp, detune2, detune3, octave2, octave3, glide, pan, frequency, channels) {
 		if(envstate() < 2) {
       if(glide >= 1) glide = .9999;
@@ -5582,26 +6033,28 @@ param **target** object, default window. The object to export the Gibberish.Bino
     }
     me.init.apply( me, args );
     
-    me.codegen = function() {
+    me.codegen = function() {      
       var keys, out = "( ";
       
-      //if(typeof Gibberish.memo[this.symbol] !== 'undefined') { return Gibberish.memo[this.symbol]; }
+      if(typeof Gibberish.memo[this.symbol] !== 'undefined') { return Gibberish.memo[this.symbol]; }
       
       keys = Object.keys(this.properties);
-
+            
+      var shouldSkip = false;
       for(var i = 0; i < keys.length; i++) {
+        if( shouldSkip ) { shouldSkip = false; continue; }
+                
         var isObject = typeof this[i] === 'object';
         
         var shouldPush = false;
         if(isObject) {
-          //if(!Gibberish.memo[ this[i].symbol ]) {
-          //  shouldPush = true;
-            out += this[i].codegen();
-            //}else{
-          //  out += Gibberish.memo[ this[i].symbol ];
-          //}
+          out += this[i].codegen();
         }else{
           out += this[i];
+        }
+        
+        if( ( op === '*' || op === '/' ) && this[ i + 1 ] === 1 ) { 
+          shouldSkip = true; continue; 
         }
         
         if(i < keys.length - 1) { out += " " + op + " "; }
@@ -6327,34 +6780,37 @@ Gibberish.PolySeq = function() {
     autofire      : [],
     name          : 'polyseq',
     getPhase      : function() { return phase },
+    setPhase      : function(v) { phase = v },
+    adjustPhase   : function(v) { phase += v },
+    timeModifier  : null,
     add           : function( seq ) {
       seq.valuesIndex = seq.durationsIndex = 0
-      that.seqs.push( seq )
-      
-      //console.log("PRIORITY", seq.priority )
-      
+
       if( seq.durations === null ) {
+        seq.autofire = true
         that.autofire.push( seq )
-      }
-      
-      if( typeof that.timeline[ phase ] !== 'undefined' ) {
-        if( seq.priority ) {
-          that.timeline[ phase ].unshift( seq )
-        }else{
-          that.timeline[ phase ].push( seq )
-        }
       }else{
-        that.timeline[ phase ] = [ seq ]
+        that.seqs.push( seq )
+        
+        if( typeof that.timeline[ phase ] !== 'undefined' ) {
+          if( seq.priority ) {
+            that.timeline[ phase ].unshift( seq )
+          }else{
+            that.timeline[ phase ].push( seq )
+          }
+        }else{
+          that.timeline[ phase ] = [ seq ]
+        }
+        
+        that.nextTime = phase
       }
-      
       // for Gibber... TODO: remove from Gibberish
       if( that.scale && (seq.key === 'frequency' || seq.key === 'note') ) {
         if( that.applyScale ) {
           that.applyScale()
         }
       }
-      
-      that.nextTime = phase
+
       seq.shouldStop = false
     },
     
@@ -6367,11 +6823,66 @@ Gibberish.PolySeq = function() {
               phaseDiff = phase - nextTime
               
           if( typeof seqs === 'undefined') return
-          
-          if( that.autofire.length ) seqs = seqs.concat( that.autofire )
-          
+                    
           for( var j = 0; j < seqs.length; j++ ) {
             var seq = seqs[ j ]
+            if( seq.shouldStop ) continue;
+
+            var idx = seq.values.pick ? seq.values.pick() : seq.valuesIndex++ % seq.values.length
+            
+            var val = typeof seq.values === 'function' ? seq.values() : seq.values[ idx ];
+    
+            if(typeof val === 'function') { val = val(); } // will also call anonymous function
+    
+            if( seq.target ) {
+              if(typeof seq.target[ seq.key ] === 'function') {
+                seq.target[ seq.key ]( val );
+              }else{
+                seq.target[ seq.key ] = val;
+              }
+            }
+            
+            if( that.chose ) that.chose( seq.key, idx )
+             
+            if( Array.isArray( seq.durations ) ) {
+              var idx = seq.durations.pick ? seq.durations.pick() : seq.durationsIndex++,
+                  next = typeof seq.durations === 'function' ? seq.durations() : seq.durations[ idx ]
+
+              newNextTime = typeof next === 'function' ? next() : next;
+              if( typeof seq.durations !== 'function' && seq.durationsIndex >= seq.durations.length ) {
+                seq.durationsIndex = 0;
+              }
+              if( that.chose ) that.chose( 'durations', idx )
+            }else{
+              var next = typeof seq.durations === 'function' ? seq.durations() : seq.durations;
+              
+              newNextTime = typeof next === 'function' ? next() : next;
+            }
+        
+            var t;
+          
+            if( that.timeModifier !== null ) {
+              t = that.timeModifier( newNextTime ) + phase // TODO: remove Gibber link... how?
+            }else{
+              t = newNextTime + phase
+            }
+          
+            t -= phaseDiff
+            newNextTime -= phaseDiff
+          
+            if( typeof that.timeline[ t ] === 'undefined' ) {
+              that.timeline[ t ] = [ seq ]
+            }else{
+              if( seq.priority ) {
+                that.timeline[ t ].unshift( seq )
+              }else{
+                that.timeline[ t ].push( seq )
+              }
+            }
+          }
+          
+          for( var j = 0, l = that.autofire.length; j < l; j++ ) {
+            var seq = that.autofire[ j ]
             if( seq.shouldStop ) continue;
 
             var idx = seq.values.pick ? seq.values.pick() : seq.valuesIndex++ % seq.values.length,
@@ -6388,43 +6899,6 @@ Gibberish.PolySeq = function() {
             }
             
             if( that.chose ) that.chose( seq.key, idx )
-            
-            if( seq.durations !== null ) { 
-              if( Array.isArray( seq.durations ) ) {
-                var idx = seq.durations.pick ? seq.durations.pick() : seq.durationsIndex++,
-                    next = seq.durations[ idx ]
-
-                newNextTime = typeof next === 'function' ? next() : next;
-                if( seq.durationsIndex >= seq.durations.length ) {
-                  seq.durationsIndex = 0;
-                }
-                if( that.chose ) that.chose( 'durations', idx )
-              }else{
-                var next = seq.durations;
-                newNextTime = typeof next === 'function' ? next() : next;
-              }
-          
-              var t;
-            
-              if( typeof Gibber !== 'undefined' ) {
-                t = Gibber.Clock.time( newNextTime ) + phase // TODO: remove Gibber link... how?
-              }else{
-                t = newNextTime + phase
-              }
-            
-              t -= phaseDiff
-              newNextTime -= phaseDiff
-            
-              if( typeof that.timeline[ t ] === 'undefined' ) {
-                that.timeline[ t ] = [ seq ]
-              }else{
-                if( seq.priority ) {
-                  that.timeline[ t ].unshift( seq )
-                }else{
-                  that.timeline[ t ].push( seq )
-                }
-              }
-            }
           }
           
           delete that.timeline[ nextTime ]
@@ -6543,10 +7017,17 @@ Gibberish.PolySeq = function() {
 Gibberish.PolySeq.prototype = Gibberish._oscillator
 var _hasInput = false; // wait until requested to ask for permissions so annoying popup doesn't appear automatically
 
+if( typeof navigator === 'object' ) {
+  navigator.getUserMedia = ( navigator.getUserMedia       ||
+                             navigator.webkitGetUserMedia ||
+                             navigator.mozGetUserMedia    ||
+                             navigator.msGetUserMedia )
+}
+                           
 function createInput() {
   console.log("connecting audio input...");
   
-  navigator.webkitGetUserMedia(
+  navigator.getUserMedia(
 		{audio:true}, 
 		function (stream) {
       console.log( 'audio input connected' )
@@ -6554,7 +7035,8 @@ function createInput() {
 	    Gibberish.mediaStreamSource.connect( Gibberish.node );
 			_hasInput = true;
 		},
-    function() { 
+    function( e ) { 
+      console.log( e )
       console.log( 'error opening audio input')
     }
 	)
@@ -6797,6 +7279,100 @@ Gibberish.Tom = function() {
 }
 Gibberish.Tom.prototype = Gibberish._oscillator;
 
+Gibberish.Clap = function() {
+  var _bpf = new Gibberish.Biquad(),
+      bpf  = _bpf.callback,
+      _bpf2 = new Gibberish.Biquad(),
+      bpf2 = _bpf2.callback,
+      _bpf3 = new Gibberish.Biquad(),
+      bpf3 = _bpf3.callback,      
+      _eg = new Gibberish.ExponentialDecay(),
+      eg  = _eg.callback,
+      _eg2 = new Gibberish.ExponentialDecay(),
+      eg2 = _eg2.callback,
+      _ad  = new Gibberish.Line(),
+      ad = _ad.callback,
+      _lfo = new Gibberish.Saw(),
+      lfo = _lfo.callback,
+      rnd = Math.random,
+      cutoff = 1000,
+      rez = 2.5,
+      env1K = .025,
+      env2K = .9,
+      env1Dur = 30 * 44.1,
+      env2Dur = 660,
+      freq = 100
+      
+  _bpf.mode = _bpf2.mode = 'BP'
+  _bpf3.mode = 'BP'
+  _bpf3.cutoff = 2400
+  
+  _bpf.cutoff = _bpf2.cutoff = 1000
+  _bpf.Q = 2
+  _bpf2.Q = 1
+      
+  Gibberish.extend(this, {
+  	name:		"clap",
+    properties:	{ amp:.5, sr:Gibberish.context.sampleRate },
+	
+  	callback: function( amp, sr ) {
+  		var out = 0, noiseBPF, noise, env;
+			      
+      noiseBPF = rnd() * 4 - 2 //* 4 - 2
+		  noiseBPF = noiseBPF > 0 ? noiseBPF : 0;
+      
+      noise = rnd() * 4 - 2 //* 16 - 8
+		  noise = noise > 0 ? noise : 0;
+      
+  		out = bpf2( bpf( noiseBPF ) ) //, cutoff, rez, 2, sr ); // mode 2 is bp
+      
+      out *= eg2( env2K, env2Dur )
+      
+      noise = bpf3( lfo( freq, noise ) * eg( env1K, env1Dur ) )//ad( 1,0, env1Dur, false ) );
+      
+      out += noise;
+  		out *= amp;
+		
+  		return out;
+  	},
+
+  	note : function( amp ) {
+  		if(typeof amp === 'number') this.amp = amp;
+		  
+      _eg2.trigger();
+      _eg.trigger();
+      _ad.setPhase(0);
+      _lfo.setPhase(0);
+
+  	},
+  })
+  .init()
+  .oscillatorInit();
+  
+  // _eg.trigger(1)
+  // _eg2.trigger(1)
+  
+  this.getBPF = function() { return _bpf; }
+  this.getBPF2 = function() { return _bpf2; }
+  this.getBPF3 = function() { return _bpf3; }
+  this.getLine = function() { return _ad; }
+  
+  this.setEnvK = function( k1,k2,d1,d2 ) {
+    env1K = k1
+    if( k2 ) env2K = k2
+    if( d1 ) env1Dur = d1
+    if( d2 ) env2Dur = d2    
+  }
+  
+  this.setFreq = function(v) { freq = v }
+  
+  this.setRez = function(v) { rez = v; }
+  this.setCutoff = function(v) { cutoff = v; }  
+  
+  this.processProperties(arguments);
+}
+Gibberish.Clap.prototype = Gibberish._oscillator;
+
 // http://www.soundonsound.com/sos/Sep02/articles/synthsecrets09.asp
 Gibberish.Cowbell = function() {
   var _s1 = new Gibberish.Square(),
@@ -6977,3 +7553,311 @@ Gibberish.Hat = function() {
   _eg2.trigger(1);
 };
 Gibberish.Hat.prototype = Gibberish._oscillator;
+
+/* IMPORTANT README
+*
+* This class depends on having access to a folder of soundfonts that have been converted to
+* binary string representations. More specifically, soundfonts designed to work with GenMIDI.js:
+*
+* https://github.com/gleitz/midi-js-soundfonts
+*
+* At some point it would be nice to make another soundfont system, as GenMIDI.js does not support
+* defining loop points.
+*
+* By default soundfonts should be found in a folder named 'resources/soundfonts' one level above
+* the location of the gibberish.js library (or gibberish.min.js). You can pass a different path
+* as the second argument to the Gibberish.SoundFont constructor; the first is the name of the soundfont
+* minus the "-mp3.js" extension. So, for example:
+*
+* b = new Gibberish.SoundFont( 'choir_aahs' ).connect()
+* b.note( 'C4' )
+*
+* Note that you can only use note names, not frequency values.
+*/
+
+(function() {
+  var cents = function(base, _cents) { return base * Math.pow(2,_cents/1200) },
+      GenMIDI = { Soundfont: { instruments: {} } },
+      SF = GenMIDI.Soundfont
+  
+  // TODO: GET RID OF THIS GLOBAL!!!! It's unfortunately in there because we're using soundfonts meant for GenMIDI.js
+  if( typeof window === 'object' )
+    window.GenMIDI = GenMIDI
+  else
+    global.GenMIDI = GenMIDI
+  
+  var getScript = function( scriptPath, handler ) {
+    var oReq = new XMLHttpRequest();
+    
+    oReq.addEventListener("load", transferComplete, false);
+    oReq.addEventListener("error", function(e){ console.log( "SF load error", e ) }, false);
+
+    oReq.open( 'GET', scriptPath, true );
+    oReq.send()
+
+    function updateProgress (oEvent) {
+      if (oEvent.lengthComputable) {
+        var percentComplete = oEvent.loaded / oEvent.total;
+        number.innerHTML = Math.round( percentComplete * 100 )
+
+        var sizeString = new String( "" + oEvent.total )
+        sizeString = sizeString[0] + '.' + sizeString[1] + ' MB'
+        size.innerHTML = sizeString
+        
+        console.log( percentComplete, "%" )
+      } else {
+        // Unable to compute progress information since the total size is unknown
+      }
+    }
+
+    function transferComplete( evt ) {
+      console.log("COMPLETE", scriptPath)
+      var script = document.createElement('script')
+      script.innerHTML = evt.srcElement ? evt.srcElement.responseText : evt.target.responseText
+      document.querySelector( 'head' ).appendChild( script )
+      handler( script ) 
+    }
+  }
+  
+  var Base64Binary = {
+  	_keyStr : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
+	
+  	// will return a  Uint8Array type
+  	decodeArrayBuffer: function(input) {
+  		var bytes = (input.length/4) * 3;
+  		var ab = new ArrayBuffer(bytes);
+  		this.decode(input, ab);
+		
+  		return ab;
+  	},
+	
+  	decode: function(input, arrayBuffer) {
+  		//get last chars to see if are valid
+  		var lkey1 = this._keyStr.indexOf(input.charAt(input.length-1));		 
+  		var lkey2 = this._keyStr.indexOf(input.charAt(input.length-2));		 
+	
+  		var bytes = (input.length/4) * 3;
+  		if (lkey1 == 64) bytes--; //padding chars, so skip
+  		if (lkey2 == 64) bytes--; //padding chars, so skip
+		
+  		var uarray;
+  		var chr1, chr2, chr3;
+  		var enc1, enc2, enc3, enc4;
+  		var i = 0;
+  		var j = 0;
+		
+  		if (arrayBuffer)
+  			uarray = new Uint8Array(arrayBuffer);
+  		else
+  			uarray = new Uint8Array(bytes);
+		
+  		input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+		
+  		for (i=0; i<bytes; i+=3) {	
+  			//get the 3 octects in 4 ascii chars
+  			enc1 = this._keyStr.indexOf(input.charAt(j++));
+  			enc2 = this._keyStr.indexOf(input.charAt(j++));
+  			enc3 = this._keyStr.indexOf(input.charAt(j++));
+  			enc4 = this._keyStr.indexOf(input.charAt(j++));
+	
+  			chr1 = (enc1 << 2) | (enc2 >> 4);
+  			chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+  			chr3 = ((enc3 & 3) << 6) | enc4;
+	
+  			uarray[i] = chr1;			
+  			if (enc3 != 64) uarray[i+1] = chr2;
+  			if (enc4 != 64) uarray[i+2] = chr3;
+  		}
+	
+  		return uarray;	
+  	}
+  }
+  
+  var decodeBuffers = function( obj ) {
+    var count = 0,
+        font = SF[ obj.instrumentFileName ]
+        
+    if( typeof SF.instruments[ obj.instrumentFileName ] === 'undefined' ) {
+      SF.instruments[ obj.instrumentFileName ] = {}
+    }
+    
+    obj.buffers = SF.instruments[ obj.instrumentFileName ]
+    
+    for( var note in font ) {
+      count++
+      !function() {
+        var _note = note
+        
+        var base = font[ _note ].split(",")[1]
+        var arrayBuffer = Base64Binary.decodeArrayBuffer( base );
+        
+        Gibberish.context.decodeAudioData( arrayBuffer, function( _buffer ) {
+          SF.instruments[ obj.instrumentFileName ][ _note ] = _buffer.getChannelData( 0 )
+          count--
+          if( count <= 0 ) { 
+            console.log("Soundfont " + obj.instrumentFileName + " is loaded.")
+            obj.isLoaded = true
+            if( obj.onload ) obj.onload()
+          }
+        }, function(e) { console.log("ERROR", e.err, arguments, _note ) } )
+        
+      }()
+    }
+  }
+  
+  Gibberish.SoundFont = function( instrumentFileName, pathToResources ) {
+    var that = this
+    Gibberish.extend(this, {
+      'instrumentFileName': instrumentFileName,
+      name:'soundfont',
+      properties: {
+        amp:1,
+        pan:0
+      },
+      playing:[],
+      buffers:{},
+      onload: null,
+      out:[0,0],
+      isLoaded: false,
+      resourcePath: pathToResources || './resources/soundfonts/',
+      
+      callback: function( amp, pan ) {
+        var val = 0
+        for( var i = this.playing.length -1; i >= 0; i-- ) {
+          var note = this.playing[ i ]
+          
+          val += this.interpolate( note.buffer, note.phase )
+          
+          note.phase += note.increment
+          if( note.phase > note.length ) {
+            this.playing.splice( this.playing.indexOf( note ), 1 )
+          }
+        }
+        
+        return this.panner( val * amp, pan, this.out );
+      }.bind( this ),
+      
+      note: function( name, amp, cents ) {
+        if( this.isLoaded ) {
+          this.playing.push({
+            buffer:this.buffers[ name ],
+            phase:0,
+            increment: isNaN( cents ) ? 1 : 1 + cents,
+            length:this.buffers[ name ].length,
+            'amp': isNaN( amp ) ? 1 : amp
+          })
+        }
+      },
+      interpolate: Gibberish.interpolate.bind( this ),
+      panner: Gibberish.makePanner()
+    })
+    .init()
+    .oscillatorInit()
+    
+    if( typeof arguments[0] === 'object' && arguments[0].instrumentFileName ) {
+      this.instrumentFileName = arguments[0].instrumentFileName
+    }
+    
+    // if already loaded, or if passed a buffer to use...
+    if( !SF.instruments[ this.instrumentFileName ] && typeof pathToResources !== 'object' ) {
+      console.log("DOWNLOADING SOUNDFONT")
+      getScript( 'resources/soundfonts/' + this.instrumentFileName + '-mp3.js', decodeBuffers.bind( null, this ) )
+    }else{
+      if( typeof pathToResources === 'object' ) {
+        SF[ this.instrumentFileName ] = pathToResources
+        decodeBuffers( this )
+      }else{
+        this.buffers = SF.instruments[ this.instrumentFileName ]
+        this.isLoaded = true
+        setTimeout( function() { if( this.onload ) this.onload() }.bind( this ), 0 )
+      }
+    }
+    return this
+  }
+  Gibberish.SoundFont.storage = SF
+  Gibberish.SoundFont.prototype = Gibberish._oscillator;
+})()
+  
+Gibberish.Vocoder = function() {
+  var encoders = [], decoders = [], amps = [], store = [], 
+      abs = Math.abs, sqrt = Math.sqrt, phase = 0, output = [0,0],
+      encoderObjects = [], decoderObjects = [], envelopeSize = 128,
+      history = [],
+      sums = [],
+      env = [],
+      index = 0,
+      original_cutoffs = [
+        330, 440, 554, 880, 1100, 1660, 2220, 3140
+      ],
+      cutoffs = [],
+      startFreq = arguments[3] || 330,
+      endFreq   = arguments[4] || 3200,
+      numberOfBands = arguments[2] || 16,
+      Q = arguments[5] || .15;
+  
+	this.name =	"vocoder";
+  
+	this.properties = {
+    carrier:  arguments[0] || null,
+    modulator:arguments[1] || null,
+    amp:		  1,
+	  pan:		  0
+  }
+
+  // filter band formula adapted from https://github.com/cwilso/Vocoder/blob/master/js/vocoder.js
+	var totalRangeInCents = 1200 * Math.log( endFreq / startFreq ) / Math.LN2,
+	    centsPerBand = totalRangeInCents / numberOfBands,
+	    scale = Math.pow( 2, centsPerBand / 1200 ),  // This is the scaling for successive bands
+	    currentFreq = startFreq;
+
+	for(var i = 0; i < numberOfBands; i++) {
+		encoderObjects[i] = new Gibberish.Biquad({ mode:'BP', Q:Q, cutoff:currentFreq });
+    encoders[i] = encoderObjects[i].callback
+		decoderObjects[i] = new Gibberish.Biquad({ mode:'BP', Q:Q, cutoff:currentFreq });
+    decoders[i] = decoderObjects[i].callback    
+		
+    history[ i ] = [ 0 ]
+    sums[ i ] = 0
+    env[ i ] = 0
+    
+		currentFreq = currentFreq * scale;
+	}
+  
+  //console.log( numberOfBands, startFreq, endFreq, Q )
+  
+  this.callback = function( carrier, modulator, amp, pan ) {
+    var historyIndex = ( index + 1 ) % envelopeSize,
+        modValue = typeof modulator !== 'number' ? modulator[0] + modulator[1] : modulator,
+        carrierValue = typeof carrier !== 'number' ? carrier[0] + carrier[1] : carrier,
+        encValue, out = 0
+        
+		for(var i = 0; i < numberOfBands; i++) {
+      encValue = abs( encoders[ i ]( modValue ) )
+      
+      sums[ i ] += encValue
+      sums[ i ] -= history[ i ][ index ]
+      
+      history[ i ][ index ] = encValue
+      history[ i ][ historyIndex ] = history[ i ][ historyIndex ] ? history[ i ][ historyIndex ] : 0
+      
+      env[ i ] = sums[ i ] / envelopeSize
+      
+      out += decoders[i]( carrierValue ) * env[ i ];
+		}
+    index = historyIndex
+	
+    output[0] = output[1] = out * amp * 16; // look, ma... 16 IS MAGIC!!!
+
+		return output;
+	}
+  
+  this.getEncoders = function() { return encoderObjects }
+  this.getDecoders = function() { return decoderObjects }  
+  
+  this.init();
+  this.oscillatorInit();
+	//this.processProperties(arguments);
+}
+Gibberish.Vocoder.prototype = Gibberish._synth
+return Gibberish; 
+})

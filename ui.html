@@ -8,9 +8,11 @@
 	<link rel="shortcut icon" href="info/images/favicon.png" type="image/png" />
 	<script type="text/javascript" src="libraries/jquery.js"></script>
 	<script type="text/javascript" src="libraries/jquery-ui-1.8.2.custom.min.js"></script>
-	<script type="text/javascript" src="libraries/gibberish.js"></script>
+	<script type="text/javascript" src="libraries/Tone.js"></script>
 	<script type="text/javascript" src="libraries/nexusUI.js"></script>
+	<script type="text/javascript" src="libraries/FileSaver.js"></script>
 	<script type="text/javascript" src="libraries/qrcode.min.js"></script>
+	<script type="text/javascript" src="libraries/jszip.js"></script>
 
 	<link rel="manifest" href="manifest.json">
 
@@ -26,19 +28,17 @@
 	<meta name="apple-mobile-web-app-capable" content="yes" />
 		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
 
+	<script type="text/javascript" src="libraries/jszip-utils.js"></script>
+	<!--
+	Mandatory in IE 6, 7, 8 and 9.
+	-->
+	<!--[if IE]>
+	<script type="text/javascript" src="libraries/jszip-utils-ie.js"></script>
+	<![endif]-->
+
+
 
 	<script>
-
-			if (!window.location.search) {
-
-				if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
-				 	window.location.href = "m.html"
-				//	$("#mobilesearch").show(0)
-				} else {
-				 	window.location.href = "m.html"
-				//	$("#mobilesearch").show(0)
-				}
-			}
 
 	 	window.AudioContext = window.AudioContext || window.webkitAudioContext;
 		var c = new window.AudioContext();
@@ -67,7 +67,6 @@
 			nx.WAenv = true;
 			if (freshpage) {
 				nx.colorize(uicolor);
- 				Gibberish.init();
 			}
 			nx.showLabels = false;
 
@@ -76,7 +75,16 @@
 				with (nx.widgets[key]) {
 					on('*', function(data) {
 						try {
-							audioFunction(data)
+						//	audioFunction(data)
+							if (!nx.editmode) {
+								var htmlstr =  "<img src='images/close-icon2.png'>";
+								for (var key in data) {
+									htmlstr += "data." + key + " &nbsp;" + data[key] + "<br>"
+								} 
+
+								$("#errorbox").html(htmlstr)
+								$("#errorbox").css("padding","8px 30px 8px 8px")
+							}
 						} catch(e) {
 							if (!nx.editmode) {
 								console.log(e);
@@ -125,28 +133,18 @@
 			}
 
 			if (freshpage) {
+				setGuide("phone_portrait")
 				if (window.location.search) {
-
 					loadInPerformance = true;
 					var uiname = location.search;
 					uiname = uiname.slice(1);
 					searchDB(uiname)
 					nx.editOff();
 				} else {
-/*
-					if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
-					 	window.location.href = "m.html"
-					//	$("#mobilesearch").show(0)
-					} else {
-					 	window.location.href = "m.html"
-					//	$("#mobilesearch").show(0)
-					}
-					*/
-
-				/*	//FIXME -- move to nx.onload?
+					//FIXME -- move to nx.onload?
 					setTimeout('recallUILocally("lastnxstate")',100)
 					if (!nx.isTouchDevice)
-					nx.editOn(); */
+					nx.editOn();
 				}
 				freshpage = false;
 
@@ -269,7 +267,7 @@
 					showSettings();
 
 				}
-				nx.onload();
+			//	nx.onload();
 				document.addEventListener("mousemove", dragobj, true);
 				$("#"+thisname).mousemove(function(e) {
 					if (nx.editmode && e.pageX>(parseInt(($(this).width()-10))+parseInt($(this).css("left").replace("px",""))) && e.pageY>(parseInt(($(this).height()-10))+parseInt($(this).css("top").replace("px","")))) {
@@ -457,7 +455,14 @@
 
 
 
+		var temp = false;
+
 		// mobile specific stuff
+		function openInstrument() {
+			temp = makeUIjson()
+			window.open("tonedemo.html")
+		}
+
 
 		function perform() {
 			if (!nx.editmode) {
@@ -888,7 +893,7 @@
 
 		function showGlobalAudioCode() {
 			//$("#guiglobalaudio").setValue(nx.globalAudioString);
-			globaleditor.setValue(nx.globalAudioString)
+		//	globaleditor.setValue(nx.globalAudioString)
 
 		/*	//To focus the ace editor
 		//	var session = globaleditor.getSession();
@@ -904,7 +909,7 @@
 
 		function showElementCallbackCode(element) {
 
-
+/*
 			callbackeditor.setValue(element.audioString)
 
 			var al = document.getElementById("arrow-left")
@@ -942,7 +947,7 @@
 			if (dataprops.length >=100) { dataprops = dataprops.substring(0,100) + " ... "}
 			$("#dataprops").html(dataprops);
 
-
+ */
 
 		}
 
@@ -954,26 +959,17 @@
 
 		function updateGlobalAudio() {
 			renderAudio();
-		/*	if (Gibber.started) {
-				Gibber.clear(renderAudio);
-			//	setTimeout(renderAudio, 2000);
-				console.log("started")
-			} else {
-				renderAudio();
-				console.log("notstarted")
-			} */
-		//	setTimeout(renderAudio, 1000);
 		}
 
 		function clearGlobalAudio() {
-			Gibberish.clear();
+		//	Gibber.clear();
 		}
 
 		function renderAudio() {
 		////	nx.globalAudioString = globaleditor.getValue();
 
 			$.globalEval(nx.globalAudioString);
-			Gibberish.started = true;
+		//	Gibber.started = true;
 		}
 
 
@@ -996,8 +992,7 @@
 			}
 		}
 
-	//	var defaultglobalaudio = "\n// Welcome to Nexus's web audio environment!\n// AudioContext is initialized as variable c \n\n";
-		var defaultglobalaudio = "\n";
+		var defaultglobalaudio = "\n// Welcome to Nexus's web audio environment!\n// AudioContext is initialized as variable c \n\n";
 
 		var IDEon = true;
 
@@ -1156,6 +1151,7 @@
 			$("#mobileguide").css("height", guide.height)
 			$("#mobileguide #tip").html(guide.name)
 		}
+
 
 
 	</script>
@@ -1358,6 +1354,20 @@
 			bottom:5px;
 		}
 
+		#downloadbutt {
+			background-color:#333;
+			color:#ddd;
+			font-size:12pt;
+			font-weight:bold;
+			padding:5px 10px 3px;
+			text-align:left;
+			box-sizing:border-box;
+			border:solid 0px #444;
+			width:95%;
+			margin:3px 2.5%;
+
+		}
+
 		.dbopt {
 			font-size:13px;
 			color:#048;
@@ -1400,10 +1410,11 @@
 				Interface
 			</div> -->
 
-			<img src="images/newpage.png" id="newpage" onclick="newPage()" style="margin-left:10px;opacity:0.5">
-			<img src="images/disk.png" id="savetodb" onclick="askToSaveToDB()">
-			<img src="images/trash.png" id="dbtrash" onclick="deleteFromDB()">
-		<!--	<img src="images/more.png" id="moreoptions" onclick="openEdit()"> -->
+		<!--	<img src="images/more.png" id="moreoptions" onclick="downloadUI()" title="Run"> -->
+			<img src="images/newpage.png" id="newpage" onclick="newPage()" style="margin-left:10px;opacity:0.5" title="New Page">
+			<img src="images/disk.png" id="savetodb" onclick="askToSaveToDB()" title="Save Instrument">
+			<img src="images/trash.png" id="dbtrash" onclick="deleteFromDB()" title="Delete Instrument">
+			
 	<!--		<span style="font-size:30px;color:#aaa;font-family:trebuchet ms;margin-top:5px;margin-left:10px;float:left" onclick="toggleIDE()">&lt;&gt;</span> -->
 
 
@@ -1439,10 +1450,10 @@
 			</style>
 
 			<select style="height:25px;width:100px;font-size:8pt;border:solid 0px;padding:1px 10px" onchange="setGuide(this.value)">
-				<option value="phone_landscape">Phone (Landscape)</option>
 				<option value="phone_portrait">Phone (Portrait)</option>
-				<option value="tablet_landscape">Tablet (Landscape)</option>
+			<!--	<option value="phone_landscape">Phone (Landscape)</option> -->
 				<option value="tablet_portrait">Tablet (Portrait)</option>
+			<!--	<option value="tablet_landscape">Tablet (Landscape)</option> -->
 			</select>
 			<!-- setGuide -->
 
@@ -1496,6 +1507,8 @@
 				height:35px;
 				margin:0px 0px 0px 0px;
 				padding:9px 10px 9px 9px;
+				//border-radius:3px;
+				//-webkit-border-radius:3px;
 				border:solid 1px #f7f7f7;
 				border-left:solid 0px;
 				border-top:solid 0px;
@@ -1507,7 +1520,8 @@
 
 			<script>
 
-			var elembuttons = [ "button", "dial", "toggle", "slider", "position", "range", "number", "keyboard", "tilt", "multislider", "multitouch", "envelope", "matrix", "mouse", "typewriter", "string", "colors", "metro", "vinyl", "joints", "remix", "banner" ]
+			var elembuttons = [ "button", "dial", "toggle", "slider", "position", "range", "number", "keyboard", "tilt", "multislider", "multitouch", "envelope", "matrix", "mouse", "typewriter", "string", "colors", "metro", "vinyl", "joints", "banner" ]
+			 //"crossfade", "motion",
 			                     
 
 			for (var i=0;i<elembuttons.length;i++) {
@@ -1552,8 +1566,12 @@
 			<div style="clear:both"></div>
 
 
+			<button id="downloadbutt" onclick="downloadUI()"> <div style="-ms-transform: rotate(180deg);-webkit-transform: rotate(180deg); transform: rotate(180deg);float:left">&#8679;</div> &nbsp;Download</button>
+
+
 
 			<img src="images/unlocked.png" id="locked" onclick="perform()">
+
 
 
 		</div>
@@ -1569,8 +1587,8 @@
 				<img src="images/fullscreen.png" onclick="toggleFullIDE()" style="height:15px;width:15px;right:2px;margin-top:0px;opacity:0.6;position:absolute">
 			</div>
 			<div id="guiglobalaudio"></div>
-			<button id="updateGlobalAudio" onclick="updateGlobalAudio()">Run</button>
-			<button id="clearGlobalAudio" onclick="clearGlobalAudio()">Reset</button>
+		<!--	<button id="updateGlobalAudio" onclick="updateGlobalAudio()">Run</button>
+			<button id="clearGlobalAudio" onclick="clearGlobalAudio()">Reset</button> -->
 			
 		</div>
 	</div>
@@ -1607,25 +1625,6 @@ callbackeditor.on("change", saveCallback)*/
 
 <script>
 
-var globaleditor = CodeMirror(document.getElementById('guiglobalaudio'), {
-  value: "function myScript(){return 100;}\n",
-  mode:  "javascript",
-  styleActiveLine: "true",
-  lineNumbers:true,
-  theme: 'neo'
-});
-
-var callbackeditor = CodeMirror(document.getElementById('guicallback'), {
-  value: "function myScript(){return 100;}\n",
-  mode:  "javascript",
-  styleActiveLine: "true",
-  lineNumbers:"true",
-  theme: 'neo'
-});
-
-globaleditor.on('change', saveGlobalAudio)
-callbackeditor.on('change', saveCallback)
-
 
 </script>
 
@@ -1640,7 +1639,7 @@ callbackeditor.on('change', saveCallback)
 			left:0px;
 			height:250px;
 			width:600px;
-			display:block;
+			display:none;
 			box-sizing:border-box;
 			padding-right:0px;
 			z-index:2;
@@ -1696,6 +1695,7 @@ callbackeditor.on('change', saveCallback)
 			font-weight:bold;
 			font-size:12px;
 			padding:3px 10px;
+			background-color:#ccc;
 		}
 
 		#codingarea #L .title img:hover {
@@ -1847,6 +1847,71 @@ callbackeditor.on('change', saveCallback)
 
 		</style>
 
+
+		<script>
+
+
+
+			function downloadUI(lib) {
+
+				var jstemplate = 'nx.onload = function() {\n\n'
+							   + '	nx.colorize("#0af");\n\n\n\n';
+
+			 	var html = '<!doctype html>\n'
+		    	+ '<html>   \n'
+				+ '<head>   \n'
+				+ '<title>My Instrument</title>\n' 
+				+ '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n'
+				+ '<meta name="viewport" content="initial-scale=0.5, user-scalable=no"/>\n'
+				+ '<script type="text/javascript" src="libs/nexusUI.js"><\/script>\n'
+				if (lib=="gibber") {
+					html += '<script type="text/javascript" src="libs/gibber.lib.js"><\/script>\n';
+				} else if (lib=="tone") {
+					html += '<script type="text/javascript" src="libs/Tone.js"><\/script>\n';
+				}
+
+				html += '<script type="text/javascript" src="main.js"><\/script>\n'
+				+ '</head>\n'                
+				+ '<body>\n';
+
+
+				for (var key in nx.widgets) {
+					var widg = nx.widgets[key]
+					var thisosc = widg.oscPath;
+					thisosc = thisosc.replace("/","")
+					html += '<canvas id="'+thisosc+'" title="'+thisosc+'" nx="'+widg.type+'" style="position:absolute;top:'+widg.canvas.style.top+';left:'+widg.canvas.style.left+';height:'+widg.height+'px;width:'+widg.width+'px"></canvas>\n'
+
+					jstemplate += "  " +thisosc + ".on('*',function(data) {"
+								+ "\n \n"
+								+ " \n \n"
+								+ "  })"
+								+ "\n\n\n\n"
+				}
+
+				html += '</body>\n'
+				+ '</html>\n';
+	
+				jstemplate += '}\n';
+
+
+
+				zip.file("index.html", html);
+				zip.file("main.js", jstemplate);
+				var content = zip.generate({type:"blob"});
+				saveAs(content, "instrument.zip");
+				
+			}
+
+
+			JSZipUtils.getBinaryContent('libraries/libs.zip', function(err, data) {
+			  if(err) {
+			    console.log(err)
+			  }
+
+			  zip = new JSZip(data);
+			});
+
+		</script>
 
 
 

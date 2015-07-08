@@ -411,11 +411,9 @@ manager.prototype.setProp = function(prop,val) {
 }
 
 manager.prototype.blockMove = function(e) {
-  //console.log(e.target)
-  if (e.target.tagName == 'CANVAS') {
-    // || e.target.tagName == 'INPUT'
+  if (e.target.tagName == 'CANVAS' || e.target.tagName == 'INPUT') {
      e.preventDefault();
-     e.stopPropogation ? e.stopPropogation() : false;
+     e.stopPropogation();
   }
 }
 },{"../utils/timing":7,"../utils/transmit":8,"../widgets":18,"events":43,"util":47}],3:[function(require,module,exports){
@@ -1706,7 +1704,7 @@ button.prototype.draw = function() {
 
       if (this.val.press && this.mode=="node") {
 
-    /*    var x = nx.clip(this.clickPos.x,this.width*.2,this.width/1.3)
+        var x = nx.clip(this.clickPos.x,this.width*.2,this.width/1.3)
         var y = nx.clip(this.clickPos.y,this.height*.2,this.height/1.3)
 
         var gradient = this.context.createRadialGradient(x,y,this.width/6,this.center.x,this.center.y,this.radius*1.3);
@@ -1720,7 +1718,7 @@ button.prototype.draw = function() {
           arc(this.center.x, this.center.y, this.radius-this.width/40, 0, Math.PI*2, true);
           stroke()
         closePath()
-*/
+
       } 
     }
 
@@ -1734,8 +1732,8 @@ button.prototype.click = function(e) {
 	if (drawing.isInside(this.clickPos,{x: this.center.x-this.radius, y:this.center.y-this.radius, w:this.radius*2, h:this.radius*2})) {
 		this.val["press"] = 1;
 		if (this.mode=="node") {
-			this.val["x"] = this.clickPos.x/this.width;
-			this.val["y"] = this.clickPos.y/this.height;
+			this.val["x"] = this.clickPos.x;
+			this.val["y"] = this.clickPos.y;
 		}
 		this.transmit(this.val);
 		this.draw();
@@ -1745,10 +1743,10 @@ button.prototype.click = function(e) {
 button.prototype.move = function () {
 	// use to track movement on the button
 	if (this.mode=="node") {
-		this.val["x"] = this.clickPos.x/this.width;
-		this.val["y"] = this.clickPos.y/this.height;
-		this.subval["x"] = this.clickPos.x/this.width;
-		this.subval["y"] = this.clickPos.y/this.height;
+		this.val["x"] = this.clickPos.x;
+		this.val["y"] = this.clickPos.y;
+		this.subval["x"] = this.clickPos.x;
+		this.subval["y"] = this.clickPos.y;
 		this.transmit(this.subval);
 		this.draw();
 	}
@@ -5706,9 +5704,9 @@ var select = module.exports = function (target) {
 	this.val = new Object();
 
 	
-//	this.canvas.ontouchstart = null;
-//	this.canvas.ontouchmove = null;
-//	this.canvas.ontouchend = null;
+	this.canvas.ontouchstart = null;
+	this.canvas.ontouchmove = null;
+	this.canvas.ontouchend = null;
 	
 	if (this.canvas.getAttribute("choices")) {
 		this.choices = this.canvas.getAttribute("choices");
@@ -6793,8 +6791,6 @@ var vinyl = module.exports = function (target) {
 	widget.call(this, target);
 	
 	this.circleSize;
-
-  this.lockResize = true;
 
 	/** @property speed The rotation increment. Default is 0.05. Not to be confused with .val.speed (see below) which is the data output. During rotation, .speed will always move towards .defaultSpeed */
 	this.speed = 0.05;

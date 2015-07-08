@@ -411,11 +411,9 @@ manager.prototype.setProp = function(prop,val) {
 }
 
 manager.prototype.blockMove = function(e) {
-  //console.log(e.target)
-  if (e.target.tagName == 'CANVAS') {
-    // || e.target.tagName == 'INPUT'
+  if (e.target.tagName == 'CANVAS' || e.target.tagName == 'INPUT') {
      e.preventDefault();
-     e.stopPropogation ? e.stopPropogation() : false;
+     e.stopPropogation();
   }
 }
 },{"../utils/timing":7,"../utils/transmit":8,"../widgets":18,"events":43,"util":47}],3:[function(require,module,exports){
@@ -628,24 +626,8 @@ widget.prototype.preClick = function(e) {
   this.deltaMove.x = 0;
   this.deltaMove.y = 0;
   this.hasMoved = false;
-  if (nx.editmode) {
-    if (this.clickPos.x>this.width-20 && this.clickPos.y>this.height-20) {
-      this.isBeingResized = true;
-      hideElementCallbackCode();
-    } else {
-      this.isBeingResized = false;
-      this.isBeingDragged = true;
-    }
-    globaldragid = this.canvasID;
-    nx.highlightEditedObj(this.canvasID);
-    showSettings();
-    if (nx.isErasing) {
-      this.destroy()
-    }
-  } else {
-    this.click(e);
-  }
   this.clickCB ? this.clickCB() : null;
+  this.click(e);
   document.body.style.userSelect = "none";
   document.body.style.mozUserSelect = "none";
   document.body.style.webkitUserSelect = "none";
@@ -657,53 +639,7 @@ widget.prototype.preMove = function(e) {
   this.deltaMove.x = newClickPos.x - this.clickPos.x;
   this.clickPos = newClickPos;
   this.hasMoved = true;
-  if (nx.editmode) {
-    if (this.isBeingResized) {
-      if (this.lockResize) {
-          var sizex = Math.max(this.clickPos.x+2,this.clickPos.y+2)
-          var sizey = Math.max(this.clickPos.x+2,this.clickPos.y+2)
-      } else {
-          var sizex = this.clickPos.x-2
-          var sizey = this.clickPos.y-2
-      }
-
-      this.canvas.style.width = sizex + "px";
-      this.canvas.style.height = sizey + "px";
-      this.canvas.width = sizex*2;
-      this.canvas.height = sizey*2;
-      this.width = sizex;
-      this.height = sizey;
-      
-      this.context.scale(2,2)
-
-      this.center = {
-        x: this.width/2, 
-        y: this.height/2
-      };
-      this.corners = {
-          "TLx": 0,
-          "TLy": 0,
-          "TRx": this.width,
-          "TRy": 0,
-          "BRx": this.width,
-          "BRy": this.height,
-          "BLx": 0,
-          "BLy": this.height
-      };
-
-      this.init();
-      this.draw();
-    } else if (this.isBeingDragged) {
-      hideElementCallbackCode();
-      var matrixy = ~~((e.pageY-this.height/2)/canvasgridy)*canvasgridy;
-      var matrixx = ~~((e.pageX-this.width/2)/canvasgridx)*canvasgridx;
-      this.canvas.style.top = matrixy+"px";
-      this.canvas.style.left = matrixx+"px";
-      this.offset = nx.findPosition(this.canvas);  
-    } 
-  } else {
-    this.move(e);
-  }
+  this.move(e);
 }
 
 widget.prototype.preRelease = function(e) {
@@ -711,22 +647,8 @@ widget.prototype.preRelease = function(e) {
   document.removeEventListener("mousemove", this.preMove, false);
   document.removeEventListener("mouseup", this.preRelease, false);
   this.clicked = false;
-  if (nx.editmode) {
-    if (this.isBeingDragged) {
-      this.isBeingDragged = false;
-      document.body.style.cursor = "pointer";
-      this.canvas.style.cursor = "pointer"
-    }
-    if (this.isBeingResized) {
-      this.isBeingResized = false;
-    }
-    if (!this.hasMoved) {
-      showElementCallbackCode(this);
-    }
-  } else {
-    this.release();
-  }
   this.releaseCB ? this.releaseCB() : null;
+  this.release();
   document.body.style.userSelect = "text";
   document.body.style.mozUserSelect = "text";
   document.body.style.webkitUserSelect = "text";
@@ -1638,7 +1560,7 @@ var button = module.exports = function(target) {
 	button1.mode = "aftertouch" 
 	```
 	*/
-	this.mode = "node";
+	this.mode = "toggle";
 
 	this.lockResize = true;
 
@@ -1654,88 +1576,90 @@ var button = module.exports = function(target) {
 util.inherits(button, widget);
 
 button.prototype.init = function() {
-  this.center = {
-    x: this.width/2,
-    y: this.height/2
-  }
-  this.radius = (Math.min(this.center.x, this.center.y)-this.lineWidth/2)
-  this.draw();
+	this.center = {
+		x: this.width/2,
+		y: this.height/2
+	}
+	this.radius = (Math.min(this.center.x, this.center.y)-this.lineWidth/2)
+	this.draw();
 }
 
 button.prototype.draw = function() {
 
-  this.erase();
-  
-  with (this.context) {
-    
-    if (this.image !== null) {
-      // Image Button
-      if (!this.val.press) {
-        // Draw Image if not touched
-        drawImage(this.image, 0, 0);
-      } else {
-        if (!this.imageTouch) {
+	this.erase();
+	
+	with (this.context) {
+		
+		if (this.image !== null) {
+			// Image Button
+			if (!this.val.press) {
+				// Draw Image if not touched
+				drawImage(this.image, 0, 0);
+			} else {
+				if (!this.imageTouch) {
 
-          drawImage(this.image, 0, 0);
+					drawImage(this.image, 0, 0);
 
-          // No touch image, apply highlighting
-          globalAlpha = 0.5;
-          fillStyle = this.colors.accent;
-          fillRect (0, 0, this.width, this.height);
-          globalAlpha = 1;
-          
-        } else {
-          // Draw Touch Image
-          drawImage(this.imageTouch, 0, 0);
-        }
-      }
-      
-    } else {
-  
-      // Regular Button
-      if (!this.val.press) {
-        fillStyle = this.colors.fill;
-      } else if (this.val.press) {
-        fillStyle = this.colors.accent;
-      }
+					// No touch image, apply highlighting
+					globalAlpha = 0.5;
+					fillStyle = this.colors.accent;
+					fillRect (0, 0, this.width, this.height);
+					globalAlpha = 1;
+					
+				} else {
+					// Draw Touch Image
+					drawImage(this.imageTouch, 0, 0);
+				}
+			}
+			
+		} else {
+	
+			// Regular Button
+			if (!this.val.press) {
+				fillStyle = this.colors.fill;
+			} else if (this.val.press) {
+				fillStyle = this.colors.accent;
+			}
 
-      beginPath();
-        arc(this.center.x, this.center.y, this.radius, 0, Math.PI*2, true);
-        fill();   
-      closePath();
+			beginPath();
+				arc(this.center.x, this.center.y, this.radius, 0, Math.PI*2, true);
+				fill();	  
+			closePath();
 
-      if (this.val.press && this.mode=="node") {
+			if (this.val.press && this.mode=="node") {
 
-    /*    var x = nx.clip(this.clickPos.x,this.width*.2,this.width/1.3)
-        var y = nx.clip(this.clickPos.y,this.height*.2,this.height/1.3)
+				var x = nx.clip(this.clickPos.x,this.width*.2,this.width/1.3)
+				var y = nx.clip(this.clickPos.y,this.height*.2,this.height/1.3)
+				console.log(x)
+				console.log(y)
 
-        var gradient = this.context.createRadialGradient(x,y,this.width/6,this.center.x,this.center.y,this.radius*1.3);
-        gradient.addColorStop(0,this.colors.accent);
-        gradient.addColorStop(1,"white");
+				var gradient = this.context.createRadialGradient(x,y,this.width/6,this.center.x,this.center.y,this.radius*1.3);
+				gradient.addColorStop(0,this.colors.accent);
+				gradient.addColorStop(1,"white");
 
-        strokeStyle = gradient;
-        lineWidth = this.width/20;
+				strokeStyle = gradient;
+				lineWidth = this.width/20;
 
-        beginPath()
-          arc(this.center.x, this.center.y, this.radius-this.width/40, 0, Math.PI*2, true);
-          stroke()
-        closePath()
-*/
-      } 
-    }
+				beginPath()
+					arc(this.center.x, this.center.y, this.radius-this.width/40, 0, Math.PI*2, true);
+					stroke()
+				closePath()
 
-    this.drawLabel();
-    
-  }
+
+			}
+		}
+
+		this.drawLabel();
+		
+	}
 }
-
 
 button.prototype.click = function(e) {
 	if (drawing.isInside(this.clickPos,{x: this.center.x-this.radius, y:this.center.y-this.radius, w:this.radius*2, h:this.radius*2})) {
 		this.val["press"] = 1;
 		if (this.mode=="node") {
-			this.val["x"] = this.clickPos.x/this.width;
-			this.val["y"] = this.clickPos.y/this.height;
+			this.val["x"] = this.clickPos.x;
+			this.val["y"] = this.clickPos.y;
 		}
 		this.transmit(this.val);
 		this.draw();
@@ -1745,10 +1669,10 @@ button.prototype.click = function(e) {
 button.prototype.move = function () {
 	// use to track movement on the button
 	if (this.mode=="node") {
-		this.val["x"] = this.clickPos.x/this.width;
-		this.val["y"] = this.clickPos.y/this.height;
-		this.subval["x"] = this.clickPos.x/this.width;
-		this.subval["y"] = this.clickPos.y/this.height;
+		this.val["x"] = this.clickPos.x;
+		this.val["y"] = this.clickPos.y;
+		this.subval["x"] = this.clickPos.x;
+		this.subval["y"] = this.clickPos.y;
 		this.transmit(this.subval);
 		this.draw();
 	}
@@ -1804,8 +1728,6 @@ var colors = module.exports = function (target) {
 	this.defaultSize = { width: 100, height: 100 };	
 	widget.call(this, target);
 
-	/* new tactic */
-
 	this.init();
 	
 }
@@ -1813,21 +1735,22 @@ util.inherits(colors, widget);
 
 colors.prototype.init = function() {
 
-  this.gradient1 = this.context.createLinearGradient(0,0,this.width,0)
-  this.gradient1.addColorStop(0, '#F00'); 
-  this.gradient1.addColorStop(0.17, '#FF0'); 
-  this.gradient1.addColorStop(0.34, '#0F0'); 
-  this.gradient1.addColorStop(0.51, '#0FF'); 
-  this.gradient1.addColorStop(0.68, '#00F'); 
-  this.gradient1.addColorStop(0.85, '#F0F'); 
-  this.gradient1.addColorStop(1, '#F00'); 
+	/* new tactic */
 
-  this.gradient2 = this.context.createLinearGradient(0,0,0,this.height)
-  this.gradient2.addColorStop(0, 'rgba(0,0,0,255)'); 
-  this.gradient2.addColorStop(0.49, 'rgba(0,0,0,0)'); 
-  this.gradient2.addColorStop(0.51, 'rgba(255,255,255,0)'); 
-  this.gradient2.addColorStop(0.95, 'rgba(255,255,255,255)'); 
-  
+	this.gradient1 = this.context.createLinearGradient(0,0,this.width,0)
+ 	this.gradient1.addColorStop(0, '#F00'); 
+ 	this.gradient1.addColorStop(0.17, '#FF0'); 
+ 	this.gradient1.addColorStop(0.34, '#0F0'); 
+ 	this.gradient1.addColorStop(0.51, '#0FF'); 
+ 	this.gradient1.addColorStop(0.68, '#00F'); 
+ 	this.gradient1.addColorStop(0.85, '#F0F'); 
+ 	this.gradient1.addColorStop(1, '#F00'); 
+
+	this.gradient2 = this.context.createLinearGradient(0,0,0,this.height)
+ 	this.gradient2.addColorStop(0, 'rgba(0,0,0,255)'); 
+ 	this.gradient2.addColorStop(0.49, 'rgba(0,0,0,0)'); 
+ 	this.gradient2.addColorStop(0.51, 'rgba(255,255,255,0)'); 
+ 	this.gradient2.addColorStop(0.95, 'rgba(255,255,255,255)'); 
 
 	this.draw();
 }
@@ -5706,9 +5629,9 @@ var select = module.exports = function (target) {
 	this.val = new Object();
 
 	
-//	this.canvas.ontouchstart = null;
-//	this.canvas.ontouchmove = null;
-//	this.canvas.ontouchend = null;
+	this.canvas.ontouchstart = null;
+	this.canvas.ontouchmove = null;
+	this.canvas.ontouchend = null;
 	
 	if (this.canvas.getAttribute("choices")) {
 		this.choices = this.canvas.getAttribute("choices");
@@ -6793,8 +6716,6 @@ var vinyl = module.exports = function (target) {
 	widget.call(this, target);
 	
 	this.circleSize;
-
-  this.lockResize = true;
 
 	/** @property speed The rotation increment. Default is 0.05. Not to be confused with .val.speed (see below) which is the data output. During rotation, .speed will always move towards .defaultSpeed */
 	this.speed = 0.05;
