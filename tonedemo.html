@@ -80,7 +80,7 @@
 			  	nx.editmode = false;
 			  	document.body.style.cursor = "pointer";
 			  	$("canvas").css("border", "none");
-			//  	$("body").css("background", nx.colors.background);
+			  	$("body").css("background", nx.colors.background);
 			    $("#locked").attr("src","images/locked.png");
 			    $("#sidebar").animate({"right": "-165px"}, 400);
 			 //   hideIDE();
@@ -484,12 +484,12 @@
 				nx.colors = settings.colors;
 				$('body').css('background-color', settings.colors.background)
 				$('#accentcolor').attr('value',settings.colors.accent)
-				$('#fillcolor').attr('value',settings.colors.fill)
+			/*	$('#fillcolor').attr('value',settings.colors.fill)
 				$('#bordercolor').attr('value',settings.colors.border)
 				$('#whitecolor').attr('value',settings.colors.white)
 				$('#blackcolor').attr('value',settings.colors.black)
 				$('#bgcolor').attr('value',settings.colors.background)
-
+*/
 			}
 		}
 
@@ -843,7 +843,7 @@
 			nx.globalAudioString = defaultglobalaudio;
 			showGlobalAudioCode();
 			updateGlobalAudio()
-			nx.colors.background = "#DDDDDD"
+			nx.colors.background = document.body.style.backgroundColor;
 			if (!justloaded) {
 			//	clearGlobalAudio();
 			} else {

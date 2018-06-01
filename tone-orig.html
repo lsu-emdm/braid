@@ -44,25 +44,8 @@
 
 		var allcode = '';
 
-		var lightcolors = {
-			fill: false,
-			border: false,
-			accent: false,
-			white: false,
-			black: false,
-			background: false
-		};
-		boundcheckmove = false;
-
 
 		nx.onload = function() {
-
-			lightcolors.fill = nx.colors.fill;
-			lightcolors.border = nx.colors.border;
-			lightcolors.accent = nx.colors.accent;
-			lightcolors.white = nx.colors.white;
-			lightcolors.black = nx.colors.black;
-			lightcolors.background = nx.colors.background;
 
 			nx.highlightEditedObj = function() {
 			 	$("canvas").css("border", "solid 1px #ccc");
@@ -76,6 +59,8 @@
 				nx.colorize(uicolor);
 			}
 			nx.showLabels = false;
+
+			console.log(nx.widgets)
 
 			//forward all event listeners to execute audio
 			for (var key in nx.widgets) {
@@ -176,9 +161,9 @@
 					if (nx.editmode) {
 						var cb = false;
 						var e1 = e.srcElement
-						for (var i=0;i<16;i++) {
+						for (var i=0;i<14;i++) {
 							if (e1) {
-								if (e1.id == "L" || e1.id == "R" || e1.className=="CodeMirror-cursor") {
+								if (e1.id == "L" || e1.id == "R") {
 									cb = true;
 									break;
 								} else {
@@ -207,9 +192,7 @@
 				$(document).mouseup(function() {
 					storeUI("lastnxstate");
 					document.removeEventListener("mousemove", dragobj, true)
-					document.removeEventListener("mouseup", boundcheckmove, true)
 					$("#sidebar").css("opacity",1);
-					$("#codingarea").css("opacity",1);
 					stopHighlighting();
 				});
 
@@ -282,38 +265,29 @@
 						parent: 'nxui' 
 					})
 
+
+					console.log(widget)
+
 					globaldragid = widget.canvasID;
 					var thisname = widget.canvasID;
 					window[widget.canvasID] = widget;
 					showSettings();
 
-				} else {
-					return;
+					console.log(thisname)
+
 				}
-
-
-				boundcheckmove = checkmove.bind(widget)
+				//nx.onload();
 				document.addEventListener("mousemove", dragobj, true);
-				document.addEventListener("mouseup", boundcheckmove, true);
-
 				$("#"+thisname).mousemove(function(e) {
 					if (nx.editmode && e.pageX>(parseInt(($(this).width()-10))+parseInt($(this).css("left").replace("px",""))) && e.pageY>(parseInt(($(this).height()-10))+parseInt($(this).css("top").replace("px","")))) {
 						this.style.cursor = "se-resize"
 					} else {
 						this.style.cursor = "pointer"
 					}
-				})
+				}) 
 			  	nx.highlightEditedObj();
 			  	widget.audioString = ""
 			  	widget.audioFunction = new Function();
-		}
-
-		function checkmove() {
-			if (!this.hasMoved) {
-				this.canvas.style.left = window.innerWidth/2-50 + "px"
-				this.canvas.style.top = window.innerHeight/2-50 + "px"
-			}
-			document.removeEventListener("mouseup",boundcheckmove)
 		}
 
 
@@ -545,10 +519,6 @@
 
 				var thistype = nx.widgets[i].canvasID;
 				thistype = thistype.replace(/[0-9]/g, '');
-
-				if (nx.widgets[i].offset.left===0) {
-					nx.widgets[i].offset.left = 1
-				} 
 				
 				jsonui.elements.push({
 					type: thistype,
@@ -653,12 +623,8 @@
 
 		function renderSettings(settings) {
 			if (settings.colors) {
-			//	nx.colors = settings.colors;
-				nx.colors.accent = settings.colors.accent
-			//	$('body').css('background-color', settings.colors.background)
-				if (settings.colors.accent=="#0af") {
-					settings.colors.accent = "#00aaff"
-				}
+				nx.colors = settings.colors;
+				$('body').css('background-color', settings.colors.background)
 				$('#accentcolor').attr('value',settings.colors.accent)
 			/*	$('#fillcolor').attr('value',settings.colors.fill)
 				$('#bordercolor').attr('value',settings.colors.border)
@@ -1035,7 +1001,7 @@
 			showGlobalAudioCode();
 			updateGlobalAudio()
 			setPageName("Untitled")
-			nx.colors.background = document.body.style.backgroundColor;
+			nx.colors.background = "#DDDDDD"
 			if (!justloaded) {
 			//	clearGlobalAudio();
 			} else {
@@ -1073,11 +1039,11 @@
 		}
 
 		function makeWidget(title,e) {
-			$("#sidebar").css("opacity",0);
-			$("#codingarea").css("opacity",0);
+			$("#sidebar").css("opacity",0.6);
 			document.body.style.userSelect = "none";
 			document.body.style.mozUserSelect = "none";
 			document.body.style.webkitUserSelect = "none";
+			console.log(title)
 			createObject(title,e.pageY,e.pageX);
 
 		}
@@ -1205,47 +1171,6 @@
 		}
 
 
-		function openQR() {
-			qrcode.makeCode("http://www.nexusosc.com/drop/braid/?"+pageName)
-			$("#qrtitle").html(pageName);
-			$("#qrcode_overlay").fadeIn(500);
-		}
-
-
-		var darkcolors = {
-			fill: "#222222",
-			border: "#444444",
-			white: "#000000",
-			black: "#eeeeee",
-			background: "#000000"
-		};
-
-		function darkMode(on) {
-			if (on) {
-				nx.colorize("background",darkcolors.background)
-				document.body.style.backgroundColor = darkcolors.background
-				document.body.style.backgroundImage = "none"
-				document.getElementById("moreoptions").src = "images/play.png"
-				nx.colorize("fill",darkcolors.fill)
-				nx.colorize("border",darkcolors.border)
-				nx.colorize("black",darkcolors.black)
-				nx.colorize("white",darkcolors.white)
-			} else {
-				nx.colorize("background","#DDDDDD")
-				document.body.style.backgroundColor = "#DDDDDD"
-				document.body.style.backgroundImage = "url('images/gridbg.png')"
-				document.getElementById("moreoptions").src = "images/playblack.png"
-				nx.colorize("fill",lightcolors.fill)
-				nx.colorize("border",lightcolors.border)
-				nx.colorize("black",lightcolors.black)
-				nx.colorize("white",lightcolors.white)
-			}
-
-
-		}
-		
-
-
 
 	</script>
 </head>
@@ -1328,16 +1253,17 @@
 		#sidebar {
 			position:fixed;
 			top:0px;
-			right:0px;
-			height:205px;
-			background-color:#eee;
+			right:-165px;
+			height:100%;
+			background-color:#fafafa;
 			border-right:solid 1px #ccc;
-			width:449px;
+			width:165px;
 			z-index:3;
 
 		}
 
 		#sidebar input {
+			padding:4px 10px;
 			box-sizing:border-box;
 			outline:solid 0px;
 			border:none;
@@ -1359,17 +1285,16 @@
 		}
 
 		#sidebar #title {
-			width:30%;
+			width:100%;
 			font-size:12px;
 			border:none;
 			font-weight:normal;
 			color:#999;
-			padding:3px 6px;
+			padding:6px 10px;
 			letter-spacing:1px;
-			background-color:transparent;
 		}
 
-		#sidebar .header, #codingarea #L .title, #R .title {
+		#sidebar .header {
 			width:100%;
 			padding:5px 10px;
 			font-size:13px;
@@ -1383,22 +1308,18 @@
 		}
 
 		#searchdb, #oscpath {
-			color:#333;
+			color:#555;
 			font-size:13px;
-			margin:0px;
+			margin:3px;
 			display:block;
 			box-sizing:border-box;
-			width:100%;
-			background-color:#fff;
-			border-radius:0px;
-			padding:8px;
+			width:159px;
 		}
 
 		#elemlist {
 			height:100%;
 			width:100%;
-			overflow:hidden;
-			background-color:#eee;
+			overflow:auto;
 		}
 
 		.nxopt {
@@ -1421,13 +1342,11 @@
 			float:left;
 		}
 
-		#elemtrash, #savetodb, #dbtrash, #newpage, #accentcolor {
+		#elemtrash, #savetodb, #dbtrash,  #newpage {
 			opacity:0.7;
-			margin:5px 0px 0px 5px;
+			margin-left:5px;
 			cursor:pointer;
 			height:20px;
-			display:block;
-			float:left;
 		}
 
 		#moreoptions {
@@ -1444,8 +1363,14 @@
 			margin-left:5px;
 			cursor:pointer;
 			height:30px;
-			display:none;
 		}
+
+		#savetodb, #dbtrash, #moreoptions, #locked, #newpage {
+			margin-top:3px;
+			margin-bottom:3px;
+		}
+
+
 
 		#savetodb {
 			margin-left:10px;
@@ -1474,29 +1399,6 @@
 		}
 
 
-		.nxoptimg {
-			width:28px;
-			height:28px;
-			margin:4px 4px 1px 4px;
-			padding:0px;
-			border-radius:3px;
-			border:solid 2px white;
-		}
-
-
-		#colorcontrols {
-			padding:3px 10px;
-			background-color:#f3f3f3;
-		}
-		input[type="color"] {
-			width:20px;
-			height:20px;
-			margin:2px 10px;
-			padding:0px !important;
-			left:0px;
-			display:block;
-			float:left;
-		}
 	</style>
 
 
@@ -1505,149 +1407,184 @@
 	</div>
 
 	<div id="nxui"></div>
-
 	
 
 	<div id="sidebar">
-		
-		<div id="hidesidebararrow" onclick="toggleSidebar()">&#8677;</div>
 
-		<img src="images/trash.png" onclick="deleteObject()" id="elementtrash">
+		<div class="header">
+			<a style="text-decoration:none;font-weight:bold;font-size:9pt;color:#888" href="info/">BRAID</a>
+			<a style="position:absolute;right:15px;top:5px;color:#0af;text-decoration:none;" href="info/">info</a>
+		</div>
 
-		<!-- controls -->
-
-
-		<div style="width:100%;height:auto;">
-
-			<div class="header">
-				<a style="text-decoration:none;font-weight:bold;font-size:9pt;color:#888" href="info/">BRAID</a>
-
-
-				<input id="title" type="text" value="Untitled"></input>
+		<input id="title" type="text" value="Untitled"></input>
 
 
 
-				<a style="position:absolute;right:15px;top:5px;color:#0af;text-decoration:none;" href="info/">info</a>
+		<!--	<div class="header">
+				Interface
+			</div> -->
+
+			<img src="images/newpage.png" id="newpage" onclick="newPage()" style="margin-left:10px;opacity:0.5" title="New Page">
+			<img src="images/disk.png" id="savetodb" onclick="askToSaveToDB()" title="Save Instrument">
+			<img src="images/trash.png" id="dbtrash" onclick="deleteFromDB()" title="Delete Instrument">
+			
+	<!--		<span style="font-size:30px;color:#aaa;font-family:trebuchet ms;margin-top:5px;margin-left:10px;float:left" onclick="toggleIDE()">&lt;&gt;</span> -->
+
+
+			<div style="display:inline;height:20px;float:right;padding-right:15px">
+	
+				<a href="javascript:openQR()" style="color:#c3c3c3;line-height:30px;font-size:17px;text-decoration:none;font-weight:bold">QR</a>
+
 			</div>
 
+			<div id="colorcontrols">
+				<input type="color" value="#00aaff" id="accentcolor" name="accentcolor" oninput="nx.colorize(this.value);nx.colors.accent=this.value" title="Accent Color">
+			<!--	<input type="color" value="#cccccc" id="bordercolor" name="bordercolor" oninput="nx.colorize('border',this.value)" title="Border Color">
+				<input type="color" value="#f7f7f7" id="fillcolor" name="fillcolor" oninput="nx.colorize('fill',this.value)" title="Fill Color">
+				<input type="color" value="#000000" id="blackcolor" name="blackcolor" oninput="nx.colorize('black',this.value)"  title="Black Aspects">
+				<input type="color" value="#ffffff" id="whitecolor" name="whitecolor" oninput="nx.colorize('white',this.value)"  title="White Aspects">
+				<input type="color" value="#ffffff" id="bgcolor" name="bgcolor" oninput="$('body').css('background-color',this.value);nx.colors.background=this.value" title="Background Color"> -->
+			</div>
 
+			<style>
 
+			#colorcontrols {
 
+				padding:3px 10px;
+				background-color:#f3f3f3;
+			}
+			#colorcontrols input {
+				width:20px;
+				height:20px;
+				margin:3px 0px;
+				padding:1px;
+				left:0px;
+			}
+			</style>
 
+			<select style="height:23px;width:150px;font-size:8pt;border:solid 0px;padding:1px 10px;margin:2px" onchange="setGuide(this.value)">
+				<option value="phone_portrait">Phone (Portrait)</option>
+			<!--	<option value="phone_landscape">Phone (Landscape)</option> -->
+				<option value="tablet_portrait">Tablet (Portrait)</option>
+			<!--	<option value="tablet_landscape">Tablet (Landscape)</option> -->
+			</select>
+			<!-- setGuide -->
 
-			<div style="width:100%;overflow:auto;background-color:#f7f7f7">
+		<script>
 
-
-				<img src="images/newpage.png" id="newpage" onclick="newPage()" style="margin-left:10px;opacity:0.5" title="New Page">
-				<img src="images/disk.png" id="savetodb" onclick="askToSaveToDB()" title="Save Instrument">
-				<img src="images/trash.png" id="dbtrash" onclick="deleteFromDB()" title="Delete Instrument">
+				function openQR() {
+					qrcode.makeCode("http://www.nexusosc.com/drop/braid/?"+pageName)
+					$("#qrtitle").html(pageName);
+					$("#qrcode_overlay").fadeIn(500);
+				}
+				
 				
 
+/*
+			function openQR() {
+				var output = '<html><head><script type="text/javascript" src="libraries/qrcode.min.js"><\/script></head><body><div style="font-family:gill sans;color:#888;padding:20px">This is a QR Code to the <b>last saved or loaded interface</b> in your browser. If you have not recently saved your interface, do so now.</div><div id="qrcode" style="width:275px;margin:0 auto"></div><script>var qrcode = new QRCode(document.getElementById("qrcode"), "http://nexusosc.com/drop/braid/");<\/script></body></html>';
+				window.open("name","http://www.tester.com","width=320,height=400").document.write(output);
+			} */
+		</script>
 
-				<div style="display:block;height:25px;float:left;margin:5px 0px 0px 5px">
-			
-					<a href="javascript:openQR()" style="color:#c3c3c3;line-height:23px;font-size:17px;text-decoration:none;font-weight:bold">QR</a>
-
-				</div>
-	
-
-				<select style="height:23px;width:120px;font-size:8pt;border:solid 0px;padding:1px 10px;margin:5px 0px 0px 5px;float:left;display:block" onchange="setGuide(this.value)">
-						<option value="phone_portrait">Phone (Portrait)</option>
-					<!--	<option value="phone_landscape">Phone (Landscape)</option> -->
-						<option value="tablet_portrait">Tablet (Portrait)</option>
-					<!--	<option value="tablet_landscape">Tablet (Landscape)</option> -->
-				</select>
-				<!-- setGuide -->
-
-
-				<input type="color" value="#00aaff" id="accentcolor" name="accentcolor" oninput="nx.colorize(this.value);nx.colors.accent=this.value" title="Accent Color">
-
-				<input type="checkbox" onchange="darkMode(this.checked)" style="margin:3px 0px 0px 8px;float:left;display:block;height:25px;width:25px"></input> 
-				<div style="font-size:10pt;font-family:gill sans;display:block;float:left;color:#888;margin:3px 0px 0px -3px;line-height:25px;font-weight:normal">Dark Mode</div>
-
-			</div>
-
-
-
-			<div id="loadsection" style="clear:both">
-
-				<input id="searchdb" name="searchdb" type="text" placeholder="Search UI Database" onkeyup="if (event.keyCode == 13) {searchDB(this.value)} else {sortDB(this.value)}">
-				</input>
-
-				<div id="searchresults" style="max-height: 114px;overflow: auto;background-color: #fff;position: absolute;width:100%"></div>
-
-			</div>
-
-
-			<div id="loadsection_loading" style="display:none;width:100%;">
-
-				<img src="images/loading.gif" style="width:20px;margin:15px auto;display:block">
-
-			</div>
-
-
-
-
-
-
-
-
-				<img src="images/unlocked.png" id="locked" onclick="perform()">
-
-
-		</div>
-
-
-
-
-			<!-- elements -->
-
-	
 		<div class="header">
-			Interface
+			Load
+		</div>
+
+		<div id="loadsection">
+
+		<input id="searchdb" name="searchdb" type="text" placeholder="Search UI Database" onkeyup="if (event.keyCode == 13) {searchDB(this.value)} else {sortDB(this.value)}">
+		</input>
+
+		<div id="searchresults"></div>
+
 		</div>
 
 
-		<div style="width:100%;height:90px;overflow:hidden">
+		<div id="loadsection_loading" style="display:none;width:100%;">
+
+			<img src="images/loading.gif" style="width:20px;margin:15px auto;display:block">
+
+		</div>
+
+
+		<div class="header">
+			Add
+		</div>
+
+		<style>
+
+			.nxoptimg {
+				float:left;
+				width:35px;
+				height:35px;
+				margin:0px 0px 0px 0px;
+				padding:9px 10px 9px 9px;
+				//border-radius:3px;
+				//-webkit-border-radius:3px;
+				border:solid 1px #f7f7f7;
+				border-left:solid 0px;
+				border-top:solid 0px;
+			}
+
+		</style>
+
+		<div id="elemlist" style="background-color:white;padding-left:1px;">
+
+			<script>
+
+			var elembuttons = [ "button", "dial", "toggle", "slider", "position", "range", "number", "keyboard", "tilt", "multislider", "multitouch", "envelope", "matrix", "mouse", "typewriter", "string", "colors", "metro", "vinyl", "joints", "banner" ]
+			                     
+
+			for (var i=0;i<elembuttons.length;i++) {
+				var htmlstr = '<img class="nxoptimg" title="'+elembuttons[i]+'" draggable="false" src="images/'+elembuttons[i]+'.png" onmousedown="makeWidget(this.title,event)">'
+				document.write(htmlstr);
+			}
+			document.write('<div style="clear:both"></div>');
+
+			</script>
+
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+			<br>
+		</div>
 
 
 
 
-			<div id="elemlist" style="padding:4px;height:auto">
+		<div id="footer">
 
-
-
-				<script>
-
-				var elembuttons = [ "button", "dial", "toggle", "slider", "position", "range", "number", "keyboard", "tilt", "multislider", "multitouch", "envelope", "matrix", "mouse", "typewriter", "string", "colors", "metro", "metroball", "vinyl", "joints", "banner" ]
-				                     
-
-				for (var i=0;i<elembuttons.length;i++) {
-					var htmlstr = '<img class="nxoptimg" title="'+elembuttons[i]+'" draggable="false" src="images/'+elembuttons[i]+'.png" onmousedown="makeWidget(this.title,event)">'
-					document.write(htmlstr);
-				}
-				//document.write('<div style="clear:both"></div>');
-
-				</script>
-
-
-			<!--	<img src="images/trash.png" id="elemtrash" onclick="deleteObject()" style="float:left;margin:10px;width:35px"> -->
-
-
+			<div class="header">
+				Element
 			</div>
 
+			<input id="oscpath" type="text" placeholder="/OSCpath" onkeyup="setoscname(this.value)"></input>
+			<img src="images/trash.png" id="elemtrash" onclick="deleteObject()">
+			<div style="clear:both"></div>
+
+
+
+			<img src="images/unlocked.png" id="locked" onclick="perform()">
+
+
+
+
 		</div>
-
-
-
-
-
-
-
-
-
-
-
 
 	</div>
 
@@ -1656,15 +1593,17 @@
 	<div id="codingarea">
 		<div id="L">
 			<div class="title">
-				JavaScript
+				global js
+				<div onclick="toggleIDE()" style="right:23px;top:0px;opacity:1;position:absolute;font-weight:bold;color:#333;font-family:gill sans;line-height:100%;font-size:25px;padding:0px 2px;cursor:pointer">–</div>
 				<img src="images/fullscreen.png" onclick="toggleFullIDE()" style="height:15px;width:15px;right:2px;margin-top:0px;opacity:0.6;position:absolute">
 			</div>
 			<div id="guiglobalaudio"></div>
+		<!--	<button id="updateGlobalAudio" onclick="updateGlobalAudio()">Run</button>
+			<button id="clearGlobalAudio" onclick="clearGlobalAudio()">Reset</button> -->
+
+			<img src="images/play.png" id="moreoptions" onclick="openInstrument()" title="Run" style="opacity:0.5">
+			
 		</div>
-
-
-		<img src="images/playblack.png" id="moreoptions" onclick="openInstrument()" title="Run" style="opacity:1;position:absolute;right:460px;bottom:10px;height:50px;width:50px;z-index:-1">
-
 	</div>
 
 
@@ -1681,11 +1620,7 @@
 			</div>
 			<div id="guicallback" onkeyup="saveCallback(this.value)"></div>
 		</div>
-
-
 	</div>
-
-
 
 
 <script>
@@ -1723,63 +1658,24 @@ globaleditor.on('change', saveGlobalAudio)
 callbackeditor.on('change', saveCallback)
 
 
-var sidebarVisible = true;
-
-function toggleSidebar() {
-	if (sidebarVisible) {
-		$("#sidebar").animate({"right": "-450px"},300)
-		$("#codingarea").animate({"right": "-450px"},300)
-		$("#hidesidebararrow").html("&#8676;")
-		sidebarVisible = false;
-	} else {
-		$("#sidebar").animate({"right": "0px"},300)
-		$("#codingarea").animate({"right": "0px"},300)
-		$("#hidesidebararrow").html("&#8677;")
-		sidebarVisible = true;
-	}
-}
-
 </script>
 
 
 	<style> 
 
-		#hidesidebararrow {
-			font-size:40px;
-			color:#aaa;
-			position:absolute;
-			right:460px;
-			top:40px;
-			cursor:pointer;
-		}
-		#hidesidebararrow:hover {
-			color:#888;
-		}
-
-		#elementtrash {
-			width:33px;
-			height:33px;
-			position:absolute;
-			right:465px;
-			top:10px;
-			display:block;
-			z-index:100;
-			opacity:0.7;
-		}
-
 		#codingarea {
 			position:fixed;
 			margin:0px;
 			padding:0px;
-			top:205px; 
-			right:0px;
-			height:auto;
-			width:450px;
+			bottom:-300px;
+			left:0px;
+			height:250px;
+			width:600px;
 			display:block;
 			box-sizing:border-box;
 			padding-right:0px;
 			z-index:2;
-			opacity:1;
+			opacity:0.9;
 		}
 
 		.fullIDE {
@@ -1822,21 +1718,21 @@ function toggleSidebar() {
 			left:0px;
 			z-index:10;
 			width:430px;
-			height:200px;
+			height:150px;
 			opacity:0.9;
 		}
 
-	/*	#codingarea #L .title, #R .title {
+		#codingarea #L .title, #R .title {
 			color:#333;
 			font-weight:bold;
 			font-size:12px;
 			padding:3px 10px;
-			background-color:#ddd;
-		} */
+			background-color:#ccc;
+		}
 
 		#codingarea #L .title img:hover {
 			opacity:1 !important;
-		} 
+		}
 
 		#guicallback, #guiglobalaudio {
 			width:100%;

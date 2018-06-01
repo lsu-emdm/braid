@@ -1,0 +1,146 @@
+<!doctype html>
+<html>
+<head>
+
+  	<title>BRAID: Web Audio Instruments</title>
+
+	<!-- standard includes of nexusUI and jquery-->
+	<link rel="shortcut icon" href="info/images/favicon.png" type="image/png" />
+	<script type="text/javascript" src="libraries/jquery.js"></script>
+	<script type="text/javascript" src="libraries/jquery-ui-1.8.2.custom.min.js"></script>
+
+	<!-- Make mobile display non-scalable and fitting the viewport window -->
+	<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no, minimal-ui" />
+	<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+
+	</head>
+	<body onload="init()">
+
+		<div id="mobilesearch">
+			
+			<input type="text" placeholder="Search Instruments"></input>
+			<br>
+			<div class="mobplay" style="background-color:#1d9;color:#000" onclick="loadWith('tone')">
+				&#9654; Load with Tone.js
+			</div>
+
+			<div class="mobplay" style="background-color:#222;color:#eee" onclick="loadWith('gib')">
+				&#9654; Load with Gibber
+			</div>
+
+		</div>
+
+		<style>
+
+			body {
+				background-color:#EEE;
+				font-family:helvetica neue;
+				padding:30px;
+			}
+
+			#mobilesearch {
+				background-color:#EEE;
+				color:#333;
+				font-size:20pt;
+			}
+
+			#mobilesearch input {
+				padding:20px;
+				border:solid 0px;
+				color:#333;
+				font-size:15pt;
+				width:80%;
+				margin:30px auto;
+				display:block;
+				border-radius:10px;
+				outline:none;
+				box-sizing:border-box;
+			}
+
+			.mobplay {
+				padding:20px;
+				width:80%;
+				margin:35px auto;
+				background-color:#ddd;
+				font-size:20px;
+				border-radius:10px;
+				box-sizing:border-box;
+				position:relative;
+				display:block;
+				cursor:pointer;
+			}
+
+			a {
+				line-height:1.5em;
+				color:#1bd;
+				text-decoration:none;
+				font-weight:none;
+			}
+
+			a:hover {
+				text-decoration:underline;
+			}
+
+
+		</style>
+
+		<script>
+
+			var UIDB;
+
+			function init() {
+
+
+			     loadDB(function(data) {
+
+					UIDB = data;
+
+					for (var i=0;i<UIDB.length;i++) {
+						var htmlstr = '<a href="tone.html?'+UIDB[i].name+'">'+UIDB[i].name + '</a><br>'
+						$("#mobilesearch").prepend(htmlstr)
+					}
+
+
+					$("#mobilesearch").prepend("<span style='font-size:12pt'>(these will be loaded with tone.js)</span><br><br>")
+
+
+			     });
+
+			}
+
+
+			function loadDB(callback) {
+
+				$.ajax({
+					type: "GET",
+				    url: "http://nexus.cct.lsu.edu:8000/nexus_uis.json",
+				    crossDomain: true,
+	  				dataType: 'json',
+				    contentType: "application/json",
+			        success: function(data) {
+			        	callback(data);
+			        },
+			        error: function(err) {
+			        	console.log(err)
+			        }
+				})
+
+			}
+
+
+			function loadWith(lib) {
+				freshpage = true;
+				var instr = $("#mobilesearch input").val();
+				if (lib=="gib") {
+					window.location.href= "?"+instr
+				} else if (lib=="tone") {
+					window.location.href= "tonedemo.html?"+instr
+				}
+			}
+
+		</script>
+
+	</body>
+</html>
+

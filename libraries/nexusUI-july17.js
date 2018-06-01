@@ -36,7 +36,7 @@ window.onload = function() {
   nx.startPulse();
   
 };
-},{"./lib/core/manager":2,"./lib/utils/dom":4,"./lib/utils/drawing":5,"./lib/utils/math":6,"extend":48}],2:[function(require,module,exports){
+},{"./lib/core/manager":2,"./lib/utils/dom":4,"./lib/utils/drawing":5,"./lib/utils/math":6,"extend":47}],2:[function(require,module,exports){
 
 /** 
   @title NexusUI API
@@ -51,7 +51,7 @@ var timingUtils = require('../utils/timing');
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 var transmit = require('../utils/transmit');
-//var WAAClock = require('waaclock');
+var WAAClock = require('waaclock');
 
 
 var manager = module.exports = function() {
@@ -110,11 +110,31 @@ var manager = module.exports = function() {
   this.fontSize = 14;
   this.fontWeight = "bold";
 
-  this.context = new(window.AudioContext || window.webkitAudioContext)()
- 
-  this.sys = navigator.userAgent.toLowerCase();
-  this.isAndroid = this.sys.indexOf("android") > -1;
-  this.isMobile = this.sys.indexOf("mobile") > -1;
+  this.context = window.audioContext || new AudioContext();
+  this.clock = new WAAClock(this.context)
+  this.clock.start()
+
+  this.interval = {
+    add: function(func,ms) {
+      var event = nx.clock.setTimeout(func,1).repeat(1)
+      nx.clock.timeStretch(nx.context.currentTime, [event], ms/1000)
+      console.log(event)
+      return event
+    },
+    kill: function(event) {
+      event.clear()
+    },
+    bpm: function(event,bpm) {
+      console.log(bpm + " in int")
+      console.log(event)
+      if (bpm) {
+        nx.clock.timeStretch(nx.context.currentTime, [event], bpm)
+      }
+    },
+    ms: function(event,ms) {
+      nx.clock.timeStretch(nx.context.currentTime, [event], ms/1000)
+    }
+  }
 
   /**  @property {integer} throttlePeriod Throttle time in ms (for nx.throttle). */
   this.throttlePeriod = 20;
@@ -219,12 +239,6 @@ manager.prototype.transform = function(canvas, type) {
   // and use that as its id if so
   if (!canvas.id) {
     var idNum = elemCount + 1;
-    while (nx.widgets[nxType + idNum]) {
-      idNum++;
-      if (idNum>1000) {
-        return;
-      }
-    }
     canvas.id = nxType + idNum;
   }
 
@@ -425,14 +439,12 @@ manager.prototype.setProp = function(prop,val) {
 }
 
 manager.prototype.blockMove = function(e) {
-  if (e.target.attributes["nx"]) {
+  if (e.target.tagName == 'CANVAS') {
      e.preventDefault();
-     if (this.isAndroid) {
-       e.stopPropagation ? e.stopPropagation() : false;
-     }
+     e.stopPropagation ? e.stopPropagation() : false;
   }
 }
-},{"../utils/timing":7,"../utils/transmit":8,"../widgets":17,"events":43,"util":47}],3:[function(require,module,exports){
+},{"../utils/timing":7,"../utils/transmit":8,"../widgets":17,"events":42,"util":46,"waaclock":48}],3:[function(require,module,exports){
 var EventEmitter = require('events').EventEmitter;
 var util = require('util');
 var domUtils = require('../utils/dom');
@@ -505,7 +517,6 @@ var widget = module.exports = function (target) {
   this.canvas.style.width = this.canvas.width/2+"px";
   this.canvas.style.height = this.canvas.height/2+"px";
   this.context.scale(2,2)
-
   /**  @property {object} offset The widget's computed offset from the top left of the document. (Has properties 'top' and 'left', both in pixels) */
   this.offset = domUtils.findPosition(this.canvas);
   /**  @property {object} center The center of the widget's canvas. A 100x100 widget would have a center at 50x50. (Has properties 'x' and 'y', both in pixels) */
@@ -677,11 +688,11 @@ widget.prototype.preMove = function(e) {
   if (nx.editmode) {
     if (this.isBeingResized) {
       if (this.lockResize) {
-          var sizex = ~~((Math.max(this.clickPos.x+2,this.clickPos.y+2))/canvasgridx)*canvasgridx
-          var sizey = ~~((Math.max(this.clickPos.x+2,this.clickPos.y+2))/canvasgridy)*canvasgridy
+          var sizex = Math.max(this.clickPos.x+2,this.clickPos.y+2)
+          var sizey = Math.max(this.clickPos.x+2,this.clickPos.y+2)
       } else {
-          var sizex = ~~((this.clickPos.x+2)/canvasgridx)*canvasgridx;
-          var sizey = ~~((this.clickPos.y+2)/canvasgridy)*canvasgridy;
+          var sizex = this.clickPos.x-2
+          var sizey = this.clickPos.y-2
       }
 
       this.canvas.style.width = sizex + "px";
@@ -748,17 +759,6 @@ widget.prototype.preRelease = function(e) {
   document.body.style.mozUserSelect = "text";
   document.body.style.webkitUserSelect = "text";
 }
-
-widget.prototype.preTouch = function(e) {
-  this.actuated = true;
-  this.clickPos = domUtils.getTouchPosition(e, this.offset);
-  this.clicked = true;
-  this.deltaMove.x = 0;
-  this.deltaMove.y = 0;
-  this.hasMoved = false;
-  this.touch(e);
-}
-
 
 widget.prototype.preTouch = function(e) {
   this.actuated = true;
@@ -1076,7 +1076,7 @@ widget.prototype.resize = function(w,h) {
   this.draw();
   
 }
-},{"../utils/dom":4,"../utils/drawing":5,"../utils/timing":7,"../utils/transmit":8,"events":43,"util":47}],4:[function(require,module,exports){
+},{"../utils/dom":4,"../utils/drawing":5,"../utils/timing":7,"../utils/transmit":8,"events":42,"util":46}],4:[function(require,module,exports){
 
 /** @class utils 
   Shared utility functions. These functions are exposed as methods of nx in NexusUI projects, i.e. .mtof() here can be accessed in your project with nx.mtof().
@@ -1622,7 +1622,7 @@ banner.prototype.click = function() {
 		window.location = this.link;
 	}
 }
-},{"../core/widget":3,"util":47}],10:[function(require,module,exports){
+},{"../core/widget":3,"util":46}],10:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 var drawing = require('../utils/drawing');
@@ -1825,7 +1825,7 @@ button.prototype.setTouchImage = function(image) {
 	this.imageTouch.onload = this.draw();
 	this.imageTouch.src = image;
 }
-},{"../core/widget":3,"../utils/drawing":5,"util":47}],11:[function(require,module,exports){
+},{"../core/widget":3,"../utils/drawing":5,"util":46}],11:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 
@@ -1925,7 +1925,7 @@ colors.prototype.click = function(e) {
 colors.prototype.move = function(e) {
 	this.click(e);
 }
-},{"../core/widget":3,"util":47}],12:[function(require,module,exports){
+},{"../core/widget":3,"util":46}],12:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 
@@ -1998,7 +1998,7 @@ comment.prototype.draw = function() {
 	}
 	this.wrapText(this.val.text, 6, 3+this.size, this.width-6, this.size);
 }
-},{"../core/widget":3,"util":47}],13:[function(require,module,exports){
+},{"../core/widget":3,"util":46}],13:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -2079,7 +2079,7 @@ crossfade.prototype.move = function() {
 	this.draw();
 	this.transmit(this.val);
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],14:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],14:[function(require,module,exports){
 var math = require('../utils/math');
 var util = require('util');
 var widget = require('../core/widget');
@@ -2258,7 +2258,7 @@ dial.prototype.aniBounce = function() {
 }
 
 
-},{"../core/widget":3,"../utils/math":6,"util":47}],15:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],15:[function(require,module,exports){
 var startTime = 0;
 
 var math = require('../utils/math')
@@ -2564,7 +2564,7 @@ envelope.prototype.findNearestNode = function(x, y, nodes) {
 
 	return nearestIndex;
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],16:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],16:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -2871,7 +2871,7 @@ ghost.prototype.click = function(e) {
 		this.draw();
 	}
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],17:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],17:[function(require,module,exports){
 module.exports = {
   banner: require('./banner'),
   button: require('./button'),
@@ -2904,10 +2904,9 @@ module.exports = {
   toggle: require('./toggle'),
   typewriter: require('./typewriter'),
   vinyl: require('./vinyl'),
-  waveform: require('./waveform'),
   windows: require('./windows')
 }
-},{"./banner":9,"./button":10,"./colors":11,"./comment":12,"./crossfade":13,"./dial":14,"./envelope":15,"./ghost":16,"./joints":18,"./keyboard":19,"./matrix":20,"./message":21,"./meter":22,"./metro":23,"./metroball":24,"./motion":25,"./mouse":26,"./multislider":27,"./multitouch":28,"./number":29,"./position":30,"./range":31,"./select":32,"./slider":33,"./string":34,"./tabs":35,"./text":36,"./tilt":37,"./toggle":38,"./typewriter":39,"./vinyl":40,"./waveform":41,"./windows":42}],18:[function(require,module,exports){
+},{"./banner":9,"./button":10,"./colors":11,"./comment":12,"./crossfade":13,"./dial":14,"./envelope":15,"./ghost":16,"./joints":18,"./keyboard":19,"./matrix":20,"./message":21,"./meter":22,"./metro":23,"./metroball":24,"./motion":25,"./mouse":26,"./multislider":27,"./multitouch":28,"./number":29,"./position":30,"./range":31,"./select":32,"./slider":33,"./string":34,"./tabs":35,"./text":36,"./tilt":37,"./toggle":38,"./typewriter":39,"./vinyl":40,"./windows":41}],18:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -2955,14 +2954,16 @@ var joints = module.exports = function (target) {
 	```
 	 */
 	this.joints = [
-		{ x: .1, y: .2 },
-    { x: .2, y: .1 },
-    { x: .3, y: .7 },
-    { x: .4, y: .4 },
-    { x: .5, y: .9 },
-    { x: .6, y: .15 },
-    { x: .7, y: .3 },
-    { x: .8, y: .8 },
+		{ x: this.width/1.2 , y: this.height/1.2 },
+		{ x: this.width/2 , y: this.height/1.3 },
+		{ x: this.width/4.2 , y: this.height/1.1 },
+		
+		{ x: this.width/1.4 , y: this.height/2.2 },
+		{ x: this.width/2.1 , y: this.height/1.8 },
+		{ x: this.width/5 , y: this.height/2.4 },
+		
+		{ x: this.width/2.8 , y: this.height/6 },
+		{ x: this.width/6 , y: this.height/3.7 }
 	
 	]
 	this.threshold = this.width / 3;
@@ -2970,8 +2971,6 @@ var joints = module.exports = function (target) {
 util.inherits(joints, widget);
 
 joints.prototype.init = function() {
-  this.nodeSize = this.width/14;
-  this.threshold = this.width / 3;
 	this.draw();
 }
 
@@ -2996,15 +2995,15 @@ joints.prototype.draw = function() {
 		strokeStyle = this.colors.border;
 		for (var i in this.joints) {
 			beginPath();
-				arc(this.joints[i].x*this.width, this.joints[i].y*this.height, this.nodeSize/2, 0, Math.PI*2, true);					
+				arc(this.joints[i].x, this.joints[i].y, this.nodeSize/2, 0, Math.PI*2, true);					
 				fill();
 			closePath();
-			var cnctX = Math.abs(this.joints[i].x*this.width-this.drawingX);
-			var cnctY = Math.abs(this.joints[i].y*this.height-this.drawingY);
+			var cnctX = Math.abs(this.joints[i].x-this.drawingX);
+			var cnctY = Math.abs(this.joints[i].y-this.drawingY);
 			var strength = cnctX + cnctY;
 			if (strength < this.threshold) {
 				beginPath();
-					moveTo(this.joints[i].x*this.width, this.joints[i].y*this.height);
+					moveTo(this.joints[i].x, this.joints[i].y);
 					lineTo(this.drawingX,this.drawingY);
 					strokeStyle = this.colors.accent;
 					lineWidth = math.scale( strength, 0, this.threshold, this.nodeSize/2, 5 );
@@ -3105,7 +3104,7 @@ joints.prototype.aniBounce = function() {
 	}
 }
 
-},{"../core/widget":3,"../utils/math":6,"util":47}],19:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],19:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 var drawing = require('../utils/drawing');
@@ -3440,7 +3439,7 @@ keyboard.prototype.release = function(e) {
 
 
 
-},{"../core/widget":3,"../utils/drawing":5,"../utils/math":6,"util":47}],20:[function(require,module,exports){
+},{"../core/widget":3,"../utils/drawing":5,"../utils/math":6,"util":46}],20:[function(require,module,exports){
 var math = require('../utils/math');
 var drawing = require('../utils/drawing');
 var util = require('util');
@@ -3884,7 +3883,7 @@ matrix.prototype.life = function() {
   return false;
 }
 
-},{"../core/widget":3,"../utils/drawing":5,"../utils/math":6,"util":47}],21:[function(require,module,exports){
+},{"../core/widget":3,"../utils/drawing":5,"../utils/math":6,"util":46}],21:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 
@@ -3956,7 +3955,7 @@ message.prototype.click = function(e) {
 message.prototype.release = function(e) {
 	this.draw();
 }
-},{"../core/widget":3,"util":47}],22:[function(require,module,exports){
+},{"../core/widget":3,"util":46}],22:[function(require,module,exports){
 var util = require('util');
 var drawing = require('../utils/drawing');
 var widget = require('../core/widget');
@@ -4008,13 +4007,6 @@ meter.prototype.init = function(){
     }
 }
 
-
-
-/** @method setup  
-    Connect the meter to an audio source and start the meter's graphics.
-    @param {audio context} [context] The audio context hosting the source node
-    @param {audio node} [source] The audio source node to analyze
-    */
 meter.prototype.setup = function(actx,source){
     this.actx = actx;   
     this.source = source;
@@ -4077,7 +4069,7 @@ meter.prototype.draw = function(){
 }
     
     
-},{"../core/widget":3,"../utils/drawing":5,"util":47}],23:[function(require,module,exports){
+},{"../core/widget":3,"../utils/drawing":5,"util":46}],23:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -4191,7 +4183,7 @@ metro.prototype.advance = function() {
 metro.prototype.customDestroy = function() {
 	nx.removeAni(this.advance.bind(this))
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],24:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],24:[function(require,module,exports){
 var math = require('../utils/math');
 var drawing = require('../utils/drawing');
 var util = require('util');
@@ -4455,7 +4447,7 @@ metroball.prototype.Ball = function(thisIndex, thisX, thisY, parent) {
 		}	
 	}	
 }
-},{"../core/widget":3,"../utils/drawing":5,"../utils/math":6,"util":47}],25:[function(require,module,exports){
+},{"../core/widget":3,"../utils/drawing":5,"../utils/math":6,"util":46}],25:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -4620,7 +4612,7 @@ motion.prototype.customDestroy = function() {
 	this.active = false;
 	window.removeEventListener("devicemotion",this.motionlistener,false);
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],26:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],26:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 var math = require('../utils/math');
@@ -4720,7 +4712,7 @@ mouse.prototype.move = function(e) {
 mouse.prototype.customDestroy = function() {
 	window.removeEventListener("mousemove",  this.boundmove, false);
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],27:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],27:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -4879,7 +4871,7 @@ multislider.prototype.setSliderValue = function(slider,value) {
 	this.transmit(msg);
 }
 
-},{"../core/widget":3,"../utils/math":6,"util":47}],28:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],28:[function(require,module,exports){
 var math = require('../utils/math');
 var drawing = require('../utils/drawing');
 var util = require('util');
@@ -5084,7 +5076,7 @@ multitouch.prototype.sendit = function() {
 	}
 	this.transmit(this.val);
 }
-},{"../core/widget":3,"../utils/drawing":5,"../utils/math":6,"util":47}],29:[function(require,module,exports){
+},{"../core/widget":3,"../utils/drawing":5,"../utils/math":6,"util":46}],29:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -5176,7 +5168,7 @@ number.prototype.init = function() {
 	this.canvas.ontouchmove = null;
 	this.canvas.ontouchend = null;
 
-	var htmlstr = '<input type="text" class="nx" nx="number" id="'+this.canvasID+'" style="height:'+this.height+'px;width:'+this.width+'px;font-size:'+this.height/2+'px;"></input><canvas height="1px" width="1px" style="display:none"></canvas>'                   
+	var htmlstr = '<input type="text" class="nx" id="'+this.canvasID+'" style="height:'+this.height+'px;width:'+this.width+'px;font-size:'+this.height/2+'px;"></input><canvas height="1px" width="1px" style="display:none"></canvas>'                   
 	var canv = this.canvas
 	var cstyle = this.canvas.style
 	var parent = canv.parentNode;
@@ -5281,7 +5273,7 @@ number.prototype.release = function(e) {
 	}
 }
 
-},{"../core/widget":3,"../utils/math":6,"util":47}],30:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],30:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -5492,7 +5484,7 @@ position.prototype.aniBounce = function() {
 position.prototype.customDestroy = function() {
 	nx.removeAni(this.aniBounce);
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],31:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],31:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 var math = require('../utils/math')
@@ -5707,7 +5699,7 @@ range.prototype.move = function() {
 
 	}
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],32:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],32:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 
@@ -5749,7 +5741,7 @@ var select = module.exports = function (target) {
 		this.choices = this.choices.split(",");
 	}
 
-	var htmlstr = '<select id="'+this.canvasID+'" class="nx" nx="select" style="height:'+this.height+'px;width:'+this.width+'px;font-size:'+this.height/2+'px;" onchange="'+this.canvasID+'.change(this)"></select><canvas height="1px" width="1px" style="display:none"></canvas>'                   
+	var htmlstr = '<select id="'+this.canvasID+'" class="nx" style="height:'+this.height+'px;width:'+this.width+'px;font-size:'+this.height/2+'px;" onchange="'+this.canvasID+'.change(this)"></select><canvas height="1px" width="1px" style="display:none"></canvas>'                   
 	var canv = this.canvas
 	var cstyle = this.canvas.style
 	var parent = canv.parentNode;
@@ -5805,7 +5797,7 @@ select.prototype.draw = function() {
     this.canvas.style.color = this.colors.black;
 
 }
-},{"../core/widget":3,"util":47}],33:[function(require,module,exports){
+},{"../core/widget":3,"util":46}],33:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -5972,7 +5964,7 @@ slider.prototype.move = function() {
 	}
 	this.transmit(this.val);
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],34:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],34:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 
@@ -6174,7 +6166,7 @@ string.prototype.pluck = function(which) {
 string.prototype.customDestroy = function() {
 	nx.removeAni(this.draw.bind(this));
 }
-},{"../core/widget":3,"util":47}],35:[function(require,module,exports){
+},{"../core/widget":3,"util":46}],35:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -6266,7 +6258,7 @@ tabs.prototype.click = function() {
 	this.transmit(this.val)
 	this.draw();
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],36:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],36:[function(require,module,exports){
 var util = require('util');
 var widget = require('../core/widget');
 
@@ -6351,7 +6343,7 @@ text.prototype.draw = function() {
     this.canvas.style.backgroundColor = this.colors.fill;
     this.canvas.style.color = this.colors.black;
 }
-},{"../core/widget":3,"util":47}],37:[function(require,module,exports){
+},{"../core/widget":3,"util":46}],37:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -6485,7 +6477,7 @@ tilt.prototype.customDestroy = function() {
 	window.removeEventListener("deviceorientation",this.boundChromeTilt,false);
 	window.removeEventListener("mozOrientation",this.boundMozTilt,false);
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],38:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],38:[function(require,module,exports){
 var drawing = require('../utils/drawing');
 var util = require('util');
 var widget = require('../core/widget');
@@ -6558,7 +6550,7 @@ toggle.prototype.click = function() {
 	this.draw();
 	this.transmit(this.val);
 }
-},{"../core/widget":3,"../utils/drawing":5,"util":47}],39:[function(require,module,exports){
+},{"../core/widget":3,"../utils/drawing":5,"util":46}],39:[function(require,module,exports){
 var drawing = require('../utils/drawing');
 var util = require('util');
 var widget = require('../core/widget');
@@ -6806,7 +6798,7 @@ typewriter.prototype.customDestroy = function() {
 	window.removeEventListener("keydown", this.boundType);
 	window.removeEventListener("keyup", this.boundUntype);
 }
-},{"../core/widget":3,"../utils/drawing":5,"util":47}],40:[function(require,module,exports){
+},{"../core/widget":3,"../utils/drawing":5,"util":46}],40:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -6953,372 +6945,7 @@ vinyl.prototype.spin = function() {
 vinyl.prototype.customDestroy = function() {
 	nx.removeAni(this.spin.bind(this));
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],41:[function(require,module,exports){
-var util = require('util');
-var widget = require('../core/widget');
-var math = require('../utils/math')
-
-/** 
-	@class waveform      
-	Waveform visualizer and selecter
-	```html
-	<canvas nx="waveform"></canvas>
-	```
-*/
-
-var waveform = module.exports = function (target) {
-	this.defaultSize = { width: 400, height: 125 };
-	widget.call(this, target);
-
-	/** @property {object}  val  Object containing core interactive aspects of widget, which are also its data output. Has the following properties: 
-		| &nbsp; | data
-		| --- | ---
-		| *starttime* | Waveform selection start position in milliseconds (integer)
-		| *stoptime* | Waveform selection end position in milliseconds (integer)
-		| *looptime* | Selection size, in milliseconds (integer)
-		| *start* | Waveform selection start, as fraction of waveform (float 0-1)
-		| *stop* | Waveform selection end, as fraction of waveform (float 0-1)
-		| *size* | Selection size, as fraction of waveform (float 0-1)
-	*/
-	this.val = {
-		start: 0,
-		stop: 0,
-		size: 0,
-		starttime: 0,
-		stoptime: 0,
-		looptime: 0
-	}
-
-	this.handle;
-	this.relhandle;
-	this.cap;
-	this.firsttouch = "start";
-
-	/** @property {Array} buffer  Contains multiple arrays of reduced buffer data, for visualization */
-	this.buffer = []
-
-	if (nx.isMobile) {
-		/** @property {integer} definition  Horizontal definition of the visualization. Value of 3 means the waveform will be represented in 3 pixel chunks. Higher numbers (4+) lead to a smaller graphics load. Smaller numbers (1-3) look better. Default is 1 for desktop renders, 3 for mobile renders. */
-		this.definition = 3;
-	} else {
-		this.definition = 1;
-	}
-
-	this.pieces = false;
-
-	/** @property {integer} channels  How many channels in the waveform */
-	this.channels = 1
-	this.rawbuffer = []
-
-	this.times = [
-		{ dur: 10 , format: 1 },
-		{ dur: 50 , format: 1 },
-		{ dur: 100 , format: 1 },
-		{ dur: 200 , format: 1 },
-		{ dur: 500 , format: 1 },
-		{ dur: 1000 , format: 1 },
-		{ dur: 2000 , format: 1 },
-		{ dur: 5000 , format: 1 },
-		{ dur: 10000 , format: 3 },
-		{ dur: 15000 , format: 3 },
-		{ dur: 60000 , format: 3 }, // 1 min
-		{ dur: 120000 , format: 3 }, // 2 mins
-		{ dur: 300000 , format: 3 }, // 5 mins
-		{ dur: 600000 , format: 3 }, // 10 mins
-	]
-	this.timescale = false
-
-	// to do --
-	// // sample rate adjustments
-	// .select(500,1000)
-
-	/** @property {string}  mode  Mode of interaction. "edge" mode lets you drag each edge of the waveform individually. "area" mode (default) lets you drag the waveform as a whole (with parallel mouse movement) or scale the waveform as a whole (with transverse mouse movement) */
-	this.mode = "area" // modes: "edge", "area"
-	this.touchdown = new Object();
-	this.init();
-}
-util.inherits(waveform, widget);
-
-waveform.prototype.init = function() {
-
-	this.pieces = ~~(this.width/this.definition);
-
-	this.draw();
-}
-
-
-/** 
-  @method setBuffer 
-  Load a web audio AudioBuffer into the waveform ui, for analysis and visualization.
-  @param {AudioBuffer} [buffer] The buffer to be loaded.
-  */
-waveform.prototype.setBuffer = function(prebuff) {
-
-	this.channels = prebuff.numberOfChannels
-	this.duration = prebuff.duration
-	this.sampleRate = prebuff.sampleRate
-	this.waveHeight = this.height / this.channels
-
-	// timescale
-	this.durationMS = (this.duration * 1000) 
-	this.timescale = 0
-	while (~~(this.durationMS/this.times[this.timescale].dur) > 7 && this.timescale < this.times.length ) {
-		this.timescale++;
-	}
-	this.timescale = this.times[this.timescale]
-
-	this.rawbuffer = []
-	this.buffer = []
-
-	// reduce/crush buffers
-	for (var i=0;i<this.channels;i++) {
-		this.rawbuffer.push(prebuff.getChannelData(0))
-		this.buffer.push([])
-
-		// counts faster (& less accurately) through larger buffers.
-		// for every 5 seconds in the buffer, our counter skips 1.
-		// so a 10 second buffer will only look at every 3rd sample
-		//   when calculating waveform.
-		var countinc = ~~(this.rawbuffer[0].length / (this.sampleRate*5)) + 1
-
-		var groupsize = ~~(this.rawbuffer[i].length/this.pieces)
-		var cmax = 0
-		var cmin = 0
-		var group = 0
-		var vis = []
-		for (var j=0;j<this.rawbuffer[i].length;j += countinc) {
-			if (this.rawbuffer[i][j]>0) {
-				cmax = Math.max(cmax,this.rawbuffer[i][j])
-			} else {
-				cmin = Math.min(cmin,this.rawbuffer[i][j])
-			}
-			if (j > group * groupsize) {
-				this.buffer[i].push([cmax,cmin])
-				group++
-				cmin = 0
-				cmax = 0
-			}
-		}
-	}
-
-	if (this.val.start && this.val.stop) {
-
-	}
-
-	this.val.starttime = Math.round(this.val.start * this.durationMS)
-	this.val.stoptime = Math.round(this.val.stop * this.durationMS)
-	this.val.looptime = Math.round(this.val.size * this.durationMS)
-	
-
-	this.draw()
-
-}
-
-/** 
-  @method select 
-  Set the selection start and end points.
-  @param {integer} [start] Selection start point in milliseconds
-  @param {integer} [end] Selection end point in milliseconds
-  */
-waveform.prototype.select = function(start,stop) {
-	this.val.start = math.clip(start / this.durationMS,0,1)
-	this.val.stop = math.clip(stop / this.durationMS,0,1)
-	this.val.size = this.val.stop - this.val.start
-	this.val.starttime = start
-	this.val.stoptime = stop
-	this.val.looptime = start - stop
-	this.transmit(this.val)
-	this.draw()
-}
-
-
-waveform.prototype.draw = function() {
-	//this.erase();
-
-	with (this.context) {
-		//bg
-		fillStyle = this.colors.fill;
-		fillRect(0,0,this.width,this.height);
-
-		//waveform
-		for (var i=0;i<this.buffer.length;i++) {
-			fillStyle = this.colors.black
-			this.waveTop = i*this.waveHeight;
-			this.waveCenter = this.waveTop + this.waveHeight/2
-			for (var j=0;j<this.buffer[i].length;j++) {
-				var ht1 = this.waveCenter - this.buffer[i][j][0]*this.waveHeight
-				var ht2 = this.waveCenter + Math.abs(this.buffer[i][j][1]*this.waveHeight)
-				ht2 = ht2 - ht1
-				fillRect( j*this.definition, ht1 , this.definition, ht2)
-			}
-			this.buffer[i]
-
-		}
-
-		//time bar - top
-		globalAlpha = 0.3
-		fillStyle = this.colors.border
-		fillRect(0,0,this.width,16)
-		globalAlpha = 1
-
-
-		textBaseline = "middle"
-		textAlign = "left"
-		fontSize = "8px"
-
-		//time lines
-		if (this.timescale) {
-			for (var i=1; i<this.durationMS/this.timescale.dur; i++) {
-				var x = (i * this.timescale.dur) / this.durationMS
-				x *= this.width
-				fillStyle = this.colors.border
-				fillRect(x,0,1,this.height)
-				fillStyle = this.colors.black
-				globalAlpha = 0.6
-				fillText(this.msToTime(i * this.timescale.dur,this.timescale.format),x+5,8)
-				globalAlpha = 1
-			}	
-		} 
-		
-
-		// range selection
-		var x1 = this.val.start*this.width;
-		var y1 = 0;
-		var x2 = this.val.stop*this.width;
-		var y2 = this.height;
-	   
-		fillStyle = this.colors.accent;
-		strokeStyle = this.colors.accent;
-		lineWidth = 2
-		globalAlpha = 0.3
-		fillRect(x1,y1,x2-x1,y2-y1);
-		globalAlpha = 0.7
-		strokeRect(x1,y1-2,x2-x1,y2-y1+4);
-		if (this.durationMS && this.val.looptime) {
-			this.val.size = this.val.stop - this.val.start
-			textAlign = "center"
-			var dur = this.val.looptime
-			if (dur > 1000) {
-				dur /= 1000
-				math.prune(dur,2)
-				dur += ' s'
-			} else {
-				math.prune(dur,0)
-				dur += ' ms'
-			}
-			fillText(dur,x1 + (x2-x1)/2,this.height/2)
-		}
-		
-		globalAlpha = 1
-
-		
-	}
-
-}
-
-waveform.prototype.msToTime = function(rawms,format) {
-
-  var format = format ? format : 2
-
-  var s = ~~(rawms / 1000)
-  var secs = s % 60;
-  s = (s - secs) / 60;
-  var mins = s % 60;
-  var hrs = (s - mins) / 60;
-  var ms = rawms % 1000
-
-  //correct digits
-  secs = (secs < 10 && mins) ? secs + '0' : secs;
-  //ms = (ms < 10 && secs) ? ms + '0' : ms;
-
-  if (format==1) {
-  	return secs + '.' + ms;
-  } else if (format==2) {
-  	return mins + ':' + secs + '.' + ms;
-  } else if (format==3) {
-  	return mins + ':' + secs;
-  }
-
-}
-
-waveform.prototype.click = function() {
-	if (this.mode=="edge") {
-		if (Math.abs(this.clickPos.x-this.val.start*this.width) < Math.abs(this.clickPos.x-this.val.stop*this.width)) {
-			this.firsttouch = "start"
-		} else {
-			this.firsttouch = "stop"
-		}
-	} else if (this.mode=="area") {
-		this.touchdown = {
-			x: this.clickPos.x,
-			y: this.clickPos.y
-		}
-		this.startval = new Object();
-		this.startval.size = this.val.stop - this.val.start;
-		this.startval.loc = this.val.start + this.startval.size/2;
-	}
-	this.move();
-}
-
-waveform.prototype.move = function() {
-
-	if (this.mode=="edge") {
-		if (this.firsttouch=="start") {
-			this.val.start = this.clickPos.x/this.width;
-			if (this.clickPos.touches.length>1) {
-				this.val.stop = this.clickPos.touches[1].x/this.width;
-			}
-		} else {
-			this.val.stop = this.clickPos.x/this.width;
-			if (this.clickPos.touches.length>1) {
-				this.val.start = this.clickPos.touches[1].x/this.width;
-			}
-		}
-	
-
-		if (this.val.stop < this.val.start) {
-			this.tempstart = this.val.start;
-			this.val.start = this.val.stop;
-			this.val.stop = this.tempstart;
-			if (this.firsttouch=="start") {
-				this.firsttouch = "stop";
-			} else {
-				this.firsttouch = "start";
-			}
-		} 
-		
-	} else if (this.mode=="area") {
-
-		var moveloc = this.clickPos.x/this.width;
-		var movesize = (this.touchdown.y - this.clickPos.y)/this.height;
-	
-		movesize /= 4;
-		var size = this.startval.size + movesize;
-		size = math.clip(size,0.001,1);
-
-		this.val = {
-			start: moveloc - size/2,
-			stop: moveloc + size/2,
-		}
-
-	}
-
-	this.val.start = math.clip(this.val.start,0,1);
-	this.val.stop = math.clip(this.val.stop,0,1);
-
-	this.val['size'] = math.clip(Math.abs(this.val.stop - this.val.start), 0, 1)
-
-	if (this.durationMS) {
-		this.val["starttime"] = Math.round(this.val.start * this.durationMS)
-		this.val["stoptime"] = Math.round(this.val.stop * this.durationMS)
-		this.val["looptime"] = Math.round(this.val.size * this.durationMS)
-	}
-
-	this.transmit(this.val);
-	this.draw();
-
-}
-},{"../core/widget":3,"../utils/math":6,"util":47}],42:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],41:[function(require,module,exports){
 var math = require('../utils/math')
 var util = require('util');
 var widget = require('../core/widget');
@@ -7561,7 +7188,7 @@ windows.prototype.restrict = function(item) {
 	}	
 	return item;
 }
-},{"../core/widget":3,"../utils/math":6,"util":47}],43:[function(require,module,exports){
+},{"../core/widget":3,"../utils/math":6,"util":46}],42:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -7864,7 +7491,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],44:[function(require,module,exports){
+},{}],43:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -7889,7 +7516,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],45:[function(require,module,exports){
+},{}],44:[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};
@@ -7954,14 +7581,14 @@ process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
 };
 
-},{}],46:[function(require,module,exports){
+},{}],45:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],47:[function(require,module,exports){
+},{}],46:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -8536,7 +8163,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":46,"_process":45,"inherits":44}],48:[function(require,module,exports){
+},{"./support/isBuffer":45,"_process":44,"inherits":43}],47:[function(require,module,exports){
 var hasOwn = Object.prototype.hasOwnProperty;
 var toString = Object.prototype.toString;
 var undefined;
@@ -8619,4 +8246,250 @@ module.exports = function extend() {
 };
 
 
-},{}]},{},[1]);
+},{}],48:[function(require,module,exports){
+var WAAClock = require('./lib/WAAClock')
+
+module.exports = WAAClock
+if (typeof window !== 'undefined') window.WAAClock = WAAClock
+
+},{"./lib/WAAClock":49}],49:[function(require,module,exports){
+(function (process){
+var isBrowser = (typeof window !== 'undefined')
+
+if (isBrowser && !AudioContext)
+  throw new Error('This browser doesn\'t seem to support web audio API')
+
+var CLOCK_DEFAULTS = {
+  toleranceLate: 0.10,
+  toleranceEarly: 0.001
+}
+
+// ==================== Event ==================== //
+var Event = function(clock, deadline, func) {
+  this.clock = clock
+  this.func = func
+  this._cleared = false // Flag used to clear an event inside callback
+
+  this.toleranceLate = clock.toleranceLate
+  this.toleranceEarly = clock.toleranceEarly
+  this._latestTime = null
+  this._earliestTime = null
+  this.deadline = null
+  this.repeatTime = null
+
+  this.schedule(deadline)
+}
+
+// Unschedules the event
+Event.prototype.clear = function() {
+  this.clock._removeEvent(this)
+  this._cleared = true
+  return this
+}
+
+// Sets the event to repeat every `time` seconds.
+Event.prototype.repeat = function(time) {
+  if (time === 0)
+    throw new Error('delay cannot be 0')
+  this.repeatTime = time
+  if (!this.clock._hasEvent(this))
+    this.schedule(this.deadline + this.repeatTime)
+  return this
+}
+
+// Sets the time tolerance of the event.
+// The event will be executed in the interval `[deadline - early, deadline + late]`
+// If the clock fails to execute the event in time, the event will be dropped.
+Event.prototype.tolerance = function(values) {
+  if (typeof values.late === 'number')
+    this.toleranceLate = values.late
+  if (typeof values.early === 'number')
+    this.toleranceEarly = values.early
+  this._refreshEarlyLateDates()
+  if (this.clock._hasEvent(this)) {
+    this.clock._removeEvent(this)
+    this.clock._insertEvent(this)
+  }
+  return this
+}
+
+// Returns true if the event is repeated, false otherwise
+Event.prototype.isRepeated = function() { return this.repeatTime !== null }
+
+// Schedules the event to be ran before `deadline`.
+// If the time is within the event tolerance, we handle the event immediately.
+// If the event was already scheduled at a different time, it is rescheduled.
+Event.prototype.schedule = function(deadline) {
+  this._cleared = false
+  this.deadline = deadline
+  this._refreshEarlyLateDates()
+
+  if (this.clock.context.currentTime >= this._earliestTime) {
+    this._execute()
+  
+  } else if (this.clock._hasEvent(this)) {
+    this.clock._removeEvent(this)
+    this.clock._insertEvent(this)
+  
+  } else this.clock._insertEvent(this)
+}
+
+Event.prototype.timeStretch = function(tRef, ratio) {
+  if (this.isRepeated())
+    this.repeatTime = this.repeatTime * ratio
+
+  var deadline = tRef + ratio * (this.deadline - tRef)
+  // If the deadline is too close or past, and the event has a repeat,
+  // we calculate the next repeat possible in the stretched space.
+  if (this.isRepeated()) {
+    while (this.clock.context.currentTime >= deadline - this.toleranceEarly)
+      deadline += this.repeatTime
+  }
+  this.schedule(deadline)
+}
+
+// Executes the event
+Event.prototype._execute = function() {
+  if (this.clock._started === false) return
+  this.clock._removeEvent(this)
+
+  if (this.clock.context.currentTime < this._latestTime)
+    this.func(this)
+  else {
+    if (this.onexpired) this.onexpired(this)
+    console.warn('event expired')
+  }
+  // In the case `schedule` is called inside `func`, we need to avoid
+  // overrwriting with yet another `schedule`.
+  if (!this.clock._hasEvent(this) && this.isRepeated() && !this._cleared)
+    this.schedule(this.deadline + this.repeatTime) 
+}
+
+// Updates cached times
+Event.prototype._refreshEarlyLateDates = function() {
+  this._latestTime = this.deadline + this.toleranceLate
+  this._earliestTime = this.deadline - this.toleranceEarly
+}
+
+// ==================== WAAClock ==================== //
+var WAAClock = module.exports = function(context, opts) {
+  var self = this
+  opts = opts || {}
+  this.tickMethod = opts.tickMethod || 'ScriptProcessorNode'
+  this.toleranceEarly = opts.toleranceEarly || CLOCK_DEFAULTS.toleranceEarly
+  this.toleranceLate = opts.toleranceLate || CLOCK_DEFAULTS.toleranceLate
+  this.context = context
+  this._events = []
+  this._started = false
+}
+
+// ---------- Public API ---------- //
+// Schedules `func` to run after `delay` seconds.
+WAAClock.prototype.setTimeout = function(func, delay) {
+  return this._createEvent(func, this._absTime(delay))
+}
+
+// Schedules `func` to run before `deadline`.
+WAAClock.prototype.callbackAtTime = function(func, deadline) {
+  return this._createEvent(func, deadline)
+}
+
+// Stretches `deadline` and `repeat` of all scheduled `events` by `ratio`, keeping
+// their relative distance to `tRef`. In fact this is equivalent to changing the tempo.
+WAAClock.prototype.timeStretch = function(tRef, events, ratio) {
+  events.forEach(function(event) { event.timeStretch(tRef, ratio) })
+  return events
+}
+
+// Removes all scheduled events and starts the clock 
+WAAClock.prototype.start = function() {
+  if (this._started === false) {
+    var self = this
+    this._started = true
+    this._events = []
+
+    if (this.tickMethod === 'ScriptProcessorNode') {
+      var bufferSize = 256
+      // We have to keep a reference to the node to avoid garbage collection
+      this._clockNode = this.context.createScriptProcessor(bufferSize, 1, 1)
+      this._clockNode.connect(this.context.destination)
+      this._clockNode.onaudioprocess = function () {
+        process.nextTick(function() { self._tick() })
+      }
+    } else if (this.tickMethod === 'manual') null // _tick is called manually
+
+    else throw new Error('invalid tickMethod ' + this.tickMethod)
+  }
+}
+
+// Stops the clock
+WAAClock.prototype.stop = function() {
+  if (this._started === true) {
+    this._started = false
+    this._clockNode.disconnect()
+  }  
+}
+
+// ---------- Private ---------- //
+
+// This function is ran periodically, and at each tick it executes
+// events for which `currentTime` is included in their tolerance interval.
+WAAClock.prototype._tick = function() {
+  var event = this._events.shift()
+
+  while(event && event._earliestTime <= this.context.currentTime) {
+    event._execute()
+    event = this._events.shift()
+  }
+
+  // Put back the last event
+  if(event) this._events.unshift(event)
+}
+
+// Creates an event and insert it to the list
+WAAClock.prototype._createEvent = function(func, deadline) {
+  return new Event(this, deadline, func)
+}
+
+// Inserts an event to the list
+WAAClock.prototype._insertEvent = function(event) {
+  this._events.splice(this._indexByTime(event._earliestTime), 0, event)
+}
+
+// Removes an event from the list
+WAAClock.prototype._removeEvent = function(event) {
+  var ind = this._events.indexOf(event)
+  if (ind !== -1) this._events.splice(ind, 1)
+}
+
+// Returns true if `event` is in queue, false otherwise
+WAAClock.prototype._hasEvent = function(event) {
+ return this._events.indexOf(event) !== -1
+}
+
+// Returns the index of the first event whose deadline is >= to `deadline`
+WAAClock.prototype._indexByTime = function(deadline) {
+  // performs a binary search
+  var low = 0
+    , high = this._events.length
+    , mid
+  while (low < high) {
+    mid = Math.floor((low + high) / 2)
+    if (this._events[mid]._earliestTime < deadline)
+      low = mid + 1
+    else high = mid
+  }
+  return low
+}
+
+// Converts from relative time to absolute time
+WAAClock.prototype._absTime = function(relTime) {
+  return relTime + this.context.currentTime
+}
+
+// Converts from absolute time to relative time 
+WAAClock.prototype._relTime = function(absTime) {
+  return absTime - this.context.currentTime
+}
+}).call(this,require('_process'))
+},{"_process":44}]},{},[1]);
