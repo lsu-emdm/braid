@@ -1,8 +1,9 @@
 <!doctype html>
 <html>
+
 <head>
 
-  	<title>BRAID: Web Audio Instruments</title>
+	<title>BRAID: Web Audio Instruments</title>
 
 	<!-- standard includes of nexusUI and jquery-->
 	<link rel="shortcut icon" href="info/images/favicon.png" type="image/png" />
@@ -25,12 +26,11 @@
 	<!-- Make mobile display non-scalable and fitting the viewport window -->
 	<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no, minimal-ui" />
 	<meta name="apple-mobile-web-app-capable" content="yes" />
-		<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+	<meta name="apple-mobile-web-app-status-bar-style" content="black" />
 
 
 	<script>
-
-	 	window.AudioContext = window.AudioContext || window.webkitAudioContext;
+		window.AudioContext = window.AudioContext || window.webkitAudioContext;
 		var c = new window.AudioContext();
 
 		var globaldragid = false;
@@ -55,7 +55,7 @@
 		boundcheckmove = false;
 
 
-		nx.onload = function() {
+		nx.onload = function () {
 
 			lightcolors.fill = nx.colors.fill;
 			lightcolors.border = nx.colors.border;
@@ -64,11 +64,11 @@
 			lightcolors.black = nx.colors.black;
 			lightcolors.background = nx.colors.background;
 
-			nx.highlightEditedObj = function() {
-			 	$("canvas").css("border", "solid 1px #ccc");
-			  	$("canvas").css("z-index", 1);
-			  	$("#"+globaldragid).css("border", "solid 1px "+nx.colors.accent);
-			  	$("#"+globaldragid).css("z-index", 2);
+			nx.highlightEditedObj = function () {
+				$("canvas").css("border", "solid 1px #ccc");
+				$("canvas").css("z-index", 1);
+				$("#" + globaldragid).css("border", "solid 1px " + nx.colors.accent);
+				$("#" + globaldragid).css("z-index", 2);
 			}
 
 			nx.WAenv = true;
@@ -79,73 +79,77 @@
 
 			//forward all event listeners to execute audio
 			for (var key in nx.widgets) {
-				with (nx.widgets[key]) {
-					on('*', function(data) {
+				with(nx.widgets[key]) {
+					on('*', function (data) {
 						try {
-						//	audioFunction(data)
+							//	audioFunction(data)
 							if (!nx.editmode) {
-								var htmlstr =  "<img src='images/close-icon2.png'>";
+								var htmlstr = "<img src='images/close-icon2.png'>";
 								for (var key in data) {
 									htmlstr += "data." + key + " &nbsp;" + data[key] + "<br>"
-								} 
+								}
 
 								$("#errorbox").html(htmlstr)
-								$("#errorbox").css("padding","8px 30px 8px 8px")
+								$("#errorbox").css("padding", "8px 30px 8px 8px")
 							}
-						} catch(e) {
+						} catch (e) {
 							if (!nx.editmode) {
 								console.log(e);
-								$("#errorbox").html(canvasID+": "+e.message+"    &nbsp;&nbsp; <img src='images/close-icon2.png'>")
-								$("#errorbox").css("padding","8px 30px 8px 8px")
+								$("#errorbox").html(canvasID + ": " + e.message + "    &nbsp;&nbsp; <img src='images/close-icon2.png'>")
+								$("#errorbox").css("padding", "8px 30px 8px 8px")
 							}
 
-						} 
+						}
 					})
 				}
-			} 
+			}
 
 			console.log(nx.widgets)
 
 			if (!nx.globalAudioString) {
 				nx.globalAudioString = "";
-			//	newPage(true);
+				//	newPage(true);
 			}
 			console.log(nx.widgets)
 
-			nx.editOn = function() {
+			nx.editOn = function () {
 				nx.editmode = true;
-			  	$("canvas").css("border", "solid 0px #ccc");
-			//  	$("body").css("background", "#eee");
-			    $("#locked").attr("src","images/unlocked.png");
-			    $("#sidebar").animate({"right": "0px"}, 400);
-			    if (IDEon) {
-			   		showIDE();
-			    }
-				$("#mobileguide").css("display","block")
+				$("canvas").css("border", "solid 0px #ccc");
+				//  	$("body").css("background", "#eee");
+				$("#locked").attr("src", "images/unlocked.png");
+				$("#sidebar").animate({
+					"right": "0px"
+				}, 400);
+				if (IDEon) {
+					showIDE();
+				}
+				$("#mobileguide").css("display", "block")
 			}
 
-			nx.editOff = function() {
+			nx.editOff = function () {
 				hideHighlight();
-			  	nx.editmode = false;
-			  	document.body.style.cursor = "pointer";
-			  	$("canvas").css("border", "none");
-			//  	$("body").css("background", nx.colors.background);
-			    $("#locked").attr("src","images/locked.png");
-			    $("#sidebar").animate({"right": "-165px"}, 400);
-			    hideIDE();
-			    $("#errorbox").html("")
-				$("#errorbox").css("padding","0px")
-				$("#mobileguide").css("display","none")
+				nx.editmode = false;
+				document.body.style.cursor = "pointer";
+				$("canvas").css("border", "none");
+				//  	$("body").css("background", nx.colors.background);
+				$("#locked").attr("src", "images/locked.png");
+				$("#sidebar").animate({
+					"right": "-165px"
+				}, 400);
+				hideIDE();
+				$("#errorbox").html("")
+				$("#errorbox").css("padding", "0px")
+				$("#mobileguide").css("display", "none")
 				if (nx.isTouchDevice) {
-					$("#locked").css("display","none")
+					$("#locked").css("display", "none")
 				}
-				$("#mobileguide").css("display","none")
+				$("#mobileguide").css("display", "none")
 			}
 
 			if (freshpage) {
 
-				if( /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ) {
-				 	window.location.href = "m.html"
+				if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+					window.location.href = "m.html"
 				} else {
 
 				}
@@ -157,12 +161,12 @@
 					uiname = uiname.slice(1);
 					searchDB(uiname)
 					nx.editOn();
-				//	nx.editOff();
+					//	nx.editOff();
 				} else {
 					//FIXME -- move to nx.onload?
-					setTimeout('recallUILocally("lastnxstate")',100)
+					setTimeout('recallUILocally("lastnxstate")', 100)
 					if (!nx.isTouchDevice)
-					nx.editOn();
+						nx.editOn();
 				}
 				freshpage = false;
 
@@ -170,15 +174,15 @@
 					$("#locked").hide(0)
 					nx.editOff()
 				}
-				
 
-				$(document).mousedown(function(e) {
+
+				$(document).mousedown(function (e) {
 					if (nx.editmode) {
 						var cb = false;
 						var e1 = e.srcElement
-						for (var i=0;i<16;i++) {
+						for (var i = 0; i < 16; i++) {
 							if (e1) {
-								if (e1.id == "L" || e1.id == "R" || e1.className=="CodeMirror-cursor") {
+								if (e1.id == "L" || e1.id == "R" || e1.className == "CodeMirror-cursor") {
 									cb = true;
 									break;
 								} else {
@@ -198,62 +202,65 @@
 							startHighlighting(e);
 						}
 					}
-				}); 
+				});
 
-				$(document).mousemove(function(e) {
+				$(document).mousemove(function (e) {
 					setHighlight(e);
 				});
 
-				$(document).mouseup(function() {
+				$(document).mouseup(function () {
+
 					storeUI("lastnxstate");
 					document.removeEventListener("mousemove", dragobj, true)
-					document.removeEventListener("mouseup", boundcheckmove, true)
-					$("#sidebar").css("opacity",1);
-					$("#codingarea").css("opacity",1);
+					if (boundcheckmove) {
+						document.removeEventListener("mouseup", boundcheckmove, true)
+					}
+					$("#sidebar").css("opacity", 1);
+					$("#codingarea").css("opacity", 1);
 					stopHighlighting();
 				});
 
 
 
-				$(".editbutton").toggle(function() {
+				$(".editbutton").toggle(function () {
 					$(this).html("editing is on")
 					nx.editOn();
-				}, function() {
+				}, function () {
 					$(this).html("editing is off")
 					nx.editOff();
 				});
 
 				$("#highlight").draggable({
-					drag: function(event,ui) {
+					drag: function (event, ui) {
 						massMove(ui)
 					}
 				});
 
 
 
-			/*	$(document).keydown(function(e){
-					console.log(e.keyCode);
-					keysdown[e.keyCode] = true
-					if (e.keyCode == 69 && keysdown[91]) {
-						if (nx.editmode) {
-							nx.editOff()
-						} else {
-							nx.editOn()
+				/*	$(document).keydown(function(e){
+						console.log(e.keyCode);
+						keysdown[e.keyCode] = true
+						if (e.keyCode == 69 && keysdown[91]) {
+							if (nx.editmode) {
+								nx.editOff()
+							} else {
+								nx.editOn()
+							}
 						}
-					}
-				 /*   if (e.keyCode == 8 || e.keyCode == 46 ) {
-						e.preventDefault();
-			    		nx.widgets[globaldragid] ? nx.widgets[globaldragid].destroy() : null;
-			    		for (var i=0;i<highlightList.length;i++) {
-			    			highlightList[i].destroy();
-				    	}
-						hideElementCallbackCode();
-						highlightList = new Array();
-				    } 
-				})
-				$(document).keyup(function(e){
-					keysdown[e.keyCode] = false
-				}); */
+					 /*   if (e.keyCode == 8 || e.keyCode == 46 ) {
+							e.preventDefault();
+				    		nx.widgets[globaldragid] ? nx.widgets[globaldragid].destroy() : null;
+				    		for (var i=0;i<highlightList.length;i++) {
+				    			highlightList[i].destroy();
+					    	}
+							hideElementCallbackCode();
+							highlightList = new Array();
+					    } 
+					})
+					$(document).keyup(function(e){
+						keysdown[e.keyCode] = false
+					}); */
 
 
 				/*
@@ -265,55 +272,56 @@
 				}); */
 			}
 
-			
+
 		}
 
 
-		function createObject(data,mousey,mousex) {
+		function createObject(data, mousey, mousex) {
 
-				// if it has an nx attribute, store that in nxId
-				var nxId = data;
-				
-				if(nxId) {
+			// if it has an nx attribute, store that in nxId
+			var nxId = data;
 
-					var widget = nx.add(nxId, {
-						x: mousex-25,
-						y: mousey-25,
-						parent: 'nxui' 
-					})
+			if (nxId) {
 
-					globaldragid = widget.canvasID;
-					var thisname = widget.canvasID;
-					window[widget.canvasID] = widget;
-					showSettings();
-
-				} else {
-					return;
-				}
-
-
-				boundcheckmove = checkmove.bind(widget)
-				document.addEventListener("mousemove", dragobj, true);
-				document.addEventListener("mouseup", boundcheckmove, true);
-
-				$("#"+thisname).mousemove(function(e) {
-					if (nx.editmode && e.pageX>(parseInt(($(this).width()-10))+parseInt($(this).css("left").replace("px",""))) && e.pageY>(parseInt(($(this).height()-10))+parseInt($(this).css("top").replace("px","")))) {
-						this.style.cursor = "se-resize"
-					} else {
-						this.style.cursor = "pointer"
-					}
+				var widget = nx.add(nxId, {
+					x: mousex - 25,
+					y: mousey - 25,
+					parent: 'nxui'
 				})
-			  	nx.highlightEditedObj();
-			  	widget.audioString = ""
-			  	widget.audioFunction = new Function();
+
+				globaldragid = widget.canvasID;
+				var thisname = widget.canvasID;
+				window[widget.canvasID] = widget;
+				showSettings();
+
+			} else {
+				return;
+			}
+
+
+			boundcheckmove = checkmove.bind(widget)
+			document.addEventListener("mousemove", dragobj, true);
+			document.addEventListener("mouseup", boundcheckmove, true);
+
+			$("#" + thisname).mousemove(function (e) {
+				if (nx.editmode && e.pageX > (parseInt(($(this).width() - 10)) + parseInt($(this).css("left").replace("px", ""))) &&
+					e.pageY > (parseInt(($(this).height() - 10)) + parseInt($(this).css("top").replace("px", "")))) {
+					this.style.cursor = "se-resize"
+				} else {
+					this.style.cursor = "pointer"
+				}
+			})
+			nx.highlightEditedObj();
+			widget.audioString = ""
+			widget.audioFunction = new Function();
 		}
 
 		function checkmove() {
 			if (!this.hasMoved) {
-				this.canvas.style.left = window.innerWidth/2-50 + "px"
-				this.canvas.style.top = window.innerHeight/2-50 + "px"
+				this.canvas.style.left = window.innerWidth / 2 - 50 + "px"
+				this.canvas.style.top = window.innerHeight / 2 - 50 + "px"
 			}
-			document.removeEventListener("mouseup",boundcheckmove)
+			document.removeEventListener("mouseup", boundcheckmove)
 		}
 
 
@@ -328,7 +336,7 @@
 			}
 
 			highlighting = true;
-			$("#highlight").css("opacity","0.2");
+			$("#highlight").css("opacity", "0.2");
 			$("#highlight").show(0);
 			$("#highlight").css("left", e.clientX);
 			$("#highlight").css("top", e.clientY);
@@ -338,32 +346,35 @@
 			$("body").css("user-select", "none");
 			$("body").css("-moz-user-select", "none");
 			$("body").css("-webkit-user-select", "none");
-		} 
+		}
+
 		function setHighlight(e) {
 			if (highlighting) {
 				if (e.clientX > hlaxis.left) {
-					$("#highlight").css("width", e.clientX-parseInt($("#highlight").css("left")));
-				} else if (e.clientX <= hlaxis.left ) {
+					$("#highlight").css("width", e.clientX - parseInt($("#highlight").css("left")));
+				} else if (e.clientX <= hlaxis.left) {
 					$("#highlight").css("width", hlaxis.left - e.clientX + "px");
 					$("#highlight").css("left", e.clientX);
 				}
 
 				if (e.clientY > hlaxis.top) {
-					$("#highlight").css("height", e.clientY-parseInt($("#highlight").css("top")));
-				} else if (e.clientY <= hlaxis.top ) {
+					$("#highlight").css("height", e.clientY - parseInt($("#highlight").css("top")));
+				} else if (e.clientY <= hlaxis.top) {
 					$("#highlight").css("height", hlaxis.top - e.clientY + "px");
 					$("#highlight").css("top", e.clientY);
 
 				}
-				
-				
+
+
 			}
 		}
+
 		function stopHighlighting(e) {
 			highlighting = false;
-			$("#highlight").css("opacity","0.1");
+			$("#highlight").css("opacity", "0.1");
 			massHighlight();
-		} 
+		}
+
 		function hideHighlight(e) {
 			$("#highlight").hide(0);
 			unhighlightAll();
@@ -381,7 +392,8 @@
 			}
 			for (var i in nx.widgets) {
 				var widg = nx.widgets[i];
-				if ( widg.offset.left>=hlDim.left && widg.offset.top>=hlDim.top && widg.offset.left+widg.width<=hlDim.left+hlDim.width && widg.offset.top+widg.height<=hlDim.top + hlDim.height) {
+				if (widg.offset.left >= hlDim.left && widg.offset.top >= hlDim.top && widg.offset.left + widg.width <= hlDim.left +
+					hlDim.width && widg.offset.top + widg.height <= hlDim.top + hlDim.height) {
 					widg.hlstart = {
 						left: widg.offset.left,
 						top: widg.offset.top
@@ -404,7 +416,7 @@
 				top: e.position.top - e.originalPosition.top
 			}
 
-			for (var i=0;i<highlightList.length;i++) {
+			for (var i = 0; i < highlightList.length; i++) {
 				var widg = highlightList[i];
 				widg.canvas.style.left = widg.hlstart.left + hlshift.left + "px";
 				widg.canvas.style.top = widg.hlstart.top + hlshift.top + "px";
@@ -416,7 +428,7 @@
 		function dragobj(e) {
 			nx.widgets[globaldragid].isBeingDragged = true;
 			nx.widgets[globaldragid].preMove(e);
-		
+
 		}
 
 
@@ -429,9 +441,9 @@
 
 		function deleteObject() {
 			nx.widgets[globaldragid] ? nx.widgets[globaldragid].destroy() : null;
-    		for (var i=0;i<highlightList.length;i++) {
-    			highlightList[i].destroy();
-	    	}
+			for (var i = 0; i < highlightList.length; i++) {
+				highlightList[i].destroy();
+			}
 			hideElementCallbackCode();
 			highlightList = new Array();
 		}
@@ -446,46 +458,49 @@
 		}
 
 		function blockMove(e) {
-       		e.preventDefault();
+			e.preventDefault();
 		}
 
-		function setcursor(e) {
-		}
-		
+		function setcursor(e) {}
+
 		function saveUI() {
 
-		 	var html = '<!doctype html>\n'
-	    	+ '<html>   \n'
-			+ '<head>   \n'
-			+ '<title>NexusDrop</title>\n' 
-			+ '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n'
-			+ '<meta name="viewport" content="initial-scale=0.5, user-scalable=no"/>\n'
-			+ '<script type="text/javascript" src="jquery.js"><\/script>\n'
-			+ '<script type="text/javascript" src="nexusUI.js"><\/script>\n'
-			+ '</head>\n'                
-			+ '<body>\n'                
-			+ '<script>\n'
-			+ 'nx.onload = function() {\n'
-			+ '	nx.colorize("'+uicolor+'");\n'
-			+ '	nx.sendsTo("ajax");\n'
-			+ '	nx.usesScript("nexusOSCRelay.php");\n'
-			+ '}\n'
-			+ '<\/script>\n';
+			var html = '<!doctype html>\n' +
+				'<html>   \n' +
+				'<head>   \n' +
+				'<title>NexusDrop</title>\n' +
+				'<meta http-equiv="Content-Type" content="text/html; charset=utf-8">\n' +
+				'<meta name="viewport" content="initial-scale=0.5, user-scalable=no"/>\n' +
+				'<script type="text/javascript" src="jquery.js"><\/script>\n' +
+				'<script type="text/javascript" src="nexusUI.js"><\/script>\n' +
+				'</head>\n' +
+				'<body>\n' +
+				'<script>\n' +
+				'nx.onload = function() {\n' +
+				'	nx.colorize("' + uicolor + '");\n' +
+				'	nx.sendsTo("ajax");\n' +
+				'	nx.usesScript("nexusOSCRelay.php");\n' +
+				'}\n' +
+				'<\/script>\n';
 
 			for (var i in nx.widgets) {
 				var thisobj = document.getElementById(nx.widgets[i].canvasID);
 				var thisosc = nx.widgets[i].oscName;
-				thisosc = thisosc.replace("/","")
-				html += '<canvas id="'+thisosc+'" nx="'+thisobj.getAttribute("nx")+'" style="position:absolute;top:'+thisobj.style.top+';left:'+thisobj.style.left+';height:'+nx.widgets[i].height+'px;width:'+nx.widgets[i].width+'px"></canvas>\n'
+				thisosc = thisosc.replace("/", "")
+				html += '<canvas id="' + thisosc + '" nx="' + thisobj.getAttribute("nx") + '" style="position:absolute;top:' +
+					thisobj.style.top + ';left:' + thisobj.style.left + ';height:' + nx.widgets[i].height + 'px;width:' + nx.widgets[i]
+					.width + 'px"></canvas>\n'
 			}
 
-			html += '</body>\n'
-			+ '</html>\n';
+			html += '</body>\n' +
+				'</html>\n';
 
 
-			var blob = new Blob([html], {type: "text/html;charset=utf-8"});
+			var blob = new Blob([html], {
+				type: "text/html;charset=utf-8"
+			});
 			saveAs(blob, "nexusdrop.html");
-			
+
 		}
 
 
@@ -497,7 +512,7 @@
 			temp = makeUIjson()
 			var w = $("#mobileguide").width()
 			var h = $("#mobileguide").height()
-			window.open("tonedemo.html","tonedemo","width="+w+",height="+h)
+			window.open("tonedemo.html", "tonedemo", "width=" + w + ",height=" + h)
 		}
 
 
@@ -505,18 +520,18 @@
 			if (!nx.editmode) {
 				//turn editing on
 				$("#perfbutt").html("unlocked")
-			//	$("#perfbutt").css("background-color","#ddd")
+				//	$("#perfbutt").css("background-color","#ddd")
 				$("#addbutt").show(0);
 				$("#editbutt").show(0);
 				nx.editOn();
-			//	nx.setLabels("on")
+				//	nx.setLabels("on")
 			} else {
 				$("#perfbutt").html("locked")
 				$("#addbutt").hide(0);
 				$("#editbutt").hide(0);
-			//	$("#perfbutt").css("background-color","#9df")
+				//	$("#perfbutt").css("background-color","#9df")
 				nx.editOff();
-			//	nx.setLabels("off")
+				//	nx.setLabels("off")
 			}
 
 		}
@@ -546,10 +561,10 @@
 				var thistype = nx.widgets[i].canvasID;
 				thistype = thistype.replace(/[0-9]/g, '');
 
-				if (nx.widgets[i].offset.left===0) {
+				if (nx.widgets[i].offset.left === 0) {
 					nx.widgets[i].offset.left = 1
-				} 
-				
+				}
+
 				jsonui.elements.push({
 					type: thistype,
 					canvasID: nx.widgets[i].canvasID,
@@ -568,15 +583,15 @@
 
 
 		function recallUILocally(uiname) {
-		//	if (JSON.parse(uijson)localStorage[uiname]) {
-		//		console.log(localStorage[uiname])
-				if (localStorage[uiname]!=undefined) {
-					buildUIfromJSON(localStorage[uiname])
-				} else {
-					newPage(true)
-				}
-				
-		//	}
+			//	if (JSON.parse(uijson)localStorage[uiname]) {
+			//		console.log(localStorage[uiname])
+			if (localStorage[uiname] != undefined) {
+				buildUIfromJSON(localStorage[uiname])
+			} else {
+				newPage(true)
+			}
+
+			//	}
 		}
 
 		function buildUIfromJSON(uijson) {
@@ -600,7 +615,7 @@
 			if (nxui.settings) {
 				renderSettings(nxui.settings);
 			}
-			
+
 
 			//check for elements property, and overwrite nxui with just the elements
 			if (nxui.elements) {
@@ -608,13 +623,13 @@
 			}
 			//otherwise assume list is only elements
 
-			for (var i=0;i<nxui.length;i++) {
+			for (var i = 0; i < nxui.length; i++) {
 
 				// if it has an nx attribute, store that in nxId
 				var nxId = nxui[i].type;
 				var thisname = nxui[i].canvasID;
-				thisname = thisname.replace("/","");
-				if(nxId) {
+				thisname = thisname.replace("/", "");
+				if (nxId) {
 
 					var widget = nx.add(nxId, {
 						x: nxui[i].left,
@@ -622,20 +637,21 @@
 						w: nxui[i].width,
 						h: nxui[i].height,
 						name: thisname,
-						parent: 'nxui' 
+						parent: 'nxui'
 					})
 
 					window[widget.canvasID] = widget;
 
 					nx.widgets[thisname].oscName = nxui[i].oscName;
 					globaldragid = thisname;
-					$("#"+thisname).mousemove(function(e) {
-						if (nx.editmode && e.pageX>(parseInt(($(this).width()-20))+parseInt($(this).css("left").replace("px",""))) && e.pageY>(parseInt(($(this).height()-20))+parseInt($(this).css("top").replace("px","")))) {
+					$("#" + thisname).mousemove(function (e) {
+						if (nx.editmode && e.pageX > (parseInt(($(this).width() - 20)) + parseInt($(this).css("left").replace("px", ""))) &&
+							e.pageY > (parseInt(($(this).height() - 20)) + parseInt($(this).css("top").replace("px", "")))) {
 							this.style.cursor = "se-resize";
 						} else {
 							this.style.cursor = "pointer";
 						}
-					}) 
+					})
 					widget.audioString = nxui[i].audioString;
 					widget.audioFunction = new Function("data", nxui[i].audioString);
 				}
@@ -653,19 +669,19 @@
 
 		function renderSettings(settings) {
 			if (settings.colors) {
-			//	nx.colors = settings.colors;
+				//	nx.colors = settings.colors;
 				nx.colors.accent = settings.colors.accent
-			//	$('body').css('background-color', settings.colors.background)
-				if (settings.colors.accent=="#0af") {
+				//	$('body').css('background-color', settings.colors.background)
+				if (settings.colors.accent == "#0af") {
 					settings.colors.accent = "#00aaff"
 				}
-				$('#accentcolor').attr('value',settings.colors.accent)
-			/*	$('#fillcolor').attr('value',settings.colors.fill)
-				$('#bordercolor').attr('value',settings.colors.border)
-				$('#whitecolor').attr('value',settings.colors.white)
-				$('#blackcolor').attr('value',settings.colors.black)
-				$('#bgcolor').attr('value',settings.colors.background)
-			*/
+				$('#accentcolor').attr('value', settings.colors.accent)
+				/*	$('#fillcolor').attr('value',settings.colors.fill)
+					$('#bordercolor').attr('value',settings.colors.border)
+					$('#whitecolor').attr('value',settings.colors.white)
+					$('#blackcolor').attr('value',settings.colors.black)
+					$('#bgcolor').attr('value',settings.colors.background)
+				*/
 			}
 		}
 
@@ -687,21 +703,23 @@
 			var overwriting = false;
 			if (uiname) {
 
-				for (var i=0;i<UIDB.length;i++) {
-	        		if (UIDB[i].name) {
-		        		if (UIDB[i].name.toLowerCase() == uiname.toLowerCase()) {
-		           			currentUI = UIDB[i];
-		           			overwriting = true;
-		           			break;
-		           		}
-		           	}
-	        	}
+				for (var i = 0; i < UIDB.length; i++) {
+					if (UIDB[i].name) {
+						if (UIDB[i].name.toLowerCase() == uiname.toLowerCase()) {
+							currentUI = UIDB[i];
+							overwriting = true;
+							break;
+						}
+					}
+				}
 
-	        	if (overwriting) {
+				if (overwriting) {
 
 					var confirmoverwrite = confirm("Are you sure you want to overwrite the interface:" + currentUI.name);
 
-		        	if (!confirmoverwrite) { return }
+					if (!confirmoverwrite) {
+						return
+					}
 
 					updateToDB(uiname)
 
@@ -709,19 +727,19 @@
 
 					saveToDB(uiname);
 
-	        	}
-	        	
+				}
+
 			}
-			
+
 		}
 
 		function saveToDB(name) {
 
 			console.log()
-			
+
 			setPageName(name);
 
-		//	clearSearchbar();
+			//	clearSearchbar();
 
 			var mydata = {
 				"nexus_ui": {
@@ -730,25 +748,25 @@
 					"uiJSON": makeUIjson()
 				}
 			}
-			
+
 			mydata = JSON.stringify(mydata);
 
 			hideSearchbar()
 
 			jQuery.ajax({
-			    type: "POST",
-			    url: "http://nexus.cct.lsu.edu:8000/nexus_uis",
-			    data: mydata,
-			    crossDomain: true,
-  				dataType: 'json',
-			    contentType: "application/json",
-			    success: function(){
-			        loadDB(setUIDB);
-			    },
-			    failure: function(errorMsg) {
-			        console.log(errorMsg);
-			    }
-			}); 
+				type: "POST",
+				url: "http://nexus.cct.lsu.edu:8000/nexus_uis",
+				data: mydata,
+				crossDomain: true,
+				dataType: 'json',
+				contentType: "application/json",
+				success: function () {
+					loadDB(setUIDB);
+				},
+				failure: function (errorMsg) {
+					console.log(errorMsg);
+				}
+			});
 
 
 		}
@@ -757,7 +775,7 @@
 		function updateToDB(name) {
 
 			console.log(name)
-			
+
 			setPageName(name);
 
 			var mydata = {
@@ -767,25 +785,25 @@
 					"uiJSON": makeUIjson()
 				}
 			}
-			
+
 			mydata = JSON.stringify(mydata);
 
 			hideSearchbar()
 
 			jQuery.ajax({
-			    type: "PUT",
-			    url: currentUI.url,
-			    data: mydata,
-			    crossDomain: true,
-  				dataType: 'json',
-			    contentType: "application/json",
-			    success: function(){
-			        loadDB(setUIDB);
-			    },
-			    failure: function(errorMsg) {
-			        console.log(errorMsg);
-			    }
-			}); 
+				type: "PUT",
+				url: currentUI.url,
+				data: mydata,
+				crossDomain: true,
+				dataType: 'json',
+				contentType: "application/json",
+				success: function () {
+					loadDB(setUIDB);
+				},
+				failure: function (errorMsg) {
+					console.log(errorMsg);
+				}
+			});
 
 
 		}
@@ -801,20 +819,20 @@
 
 			loadDB(function (data) {
 				setUIDB(data)
-	        	for (var i=0;i<data.length;i++) {
-	        		if (data[i].name) {
-		        		if (data[i].name.toLowerCase() == UItoLoad.toLowerCase()) {
+				for (var i = 0; i < data.length; i++) {
+					if (data[i].name) {
+						if (data[i].name.toLowerCase() == UItoLoad.toLowerCase()) {
 
 
-		           			buildUIfromJSON(data[i].uiJSON);
-		           			currentUI = data[i];
+							buildUIfromJSON(data[i].uiJSON);
+							currentUI = data[i];
 							clearGlobalAudio();
-		           			return;
-		           		}
-		           	}
-	        	}
-	        	alert("Could not find the UI: "+UItoLoad);
-		    })
+							return;
+						}
+					}
+				}
+				alert("Could not find the UI: " + UItoLoad);
+			})
 		}
 
 		var UIDB;
@@ -823,24 +841,24 @@
 
 			$.ajax({
 				type: "GET",
-			    url: "http://nexus.cct.lsu.edu:8000/nexus_uis.json",
-			    crossDomain: true,
-  				dataType: 'json',
-			    contentType: "application/json",
-		        success: function(data) {
-		        	callback(data);
-			        for (var i=0;i<data.length;i++) {
-		        		if (data[i].name) {
-			        		if (data[i].name.toLowerCase() == pageName.toLowerCase()) {
-			           			currentUI = data[i];
-			           			return;
-			           		}
-			           	}
-		        	}
-		        },
-		        error: function(err) {
-		        	console.log(err)
-		        }
+				url: "http://nexus.cct.lsu.edu:8000/nexus_uis.json",
+				crossDomain: true,
+				dataType: 'json',
+				contentType: "application/json",
+				success: function (data) {
+					callback(data);
+					for (var i = 0; i < data.length; i++) {
+						if (data[i].name) {
+							if (data[i].name.toLowerCase() == pageName.toLowerCase()) {
+								currentUI = data[i];
+								return;
+							}
+						}
+					}
+				},
+				error: function (err) {
+					console.log(err)
+				}
 			})
 
 		}
@@ -854,41 +872,41 @@
 
 		function sortDB(name) {
 			var options = "";
-			if (name.length>0) {
-			    for(var i = 0; i < UIDB.length; i++) {
-			    	dbname = UIDB[i].name
-			    	if (dbname && UIDB[i].transmission=="tone") {
-				    	if (dbname.substring(0,name.length).toLowerCase()==name.toLowerCase()) {
-				    		options += '<a class="dbopt" href="javascript:searchDB(\''+UIDB[i].name+'\')">'+UIDB[i].name+'</a> ';
-				    	}
-				    }
-			    }
+			if (name.length > 0) {
+				for (var i = 0; i < UIDB.length; i++) {
+					dbname = UIDB[i].name
+					if (dbname && UIDB[i].transmission == "tone") {
+						if (dbname.substring(0, name.length).toLowerCase() == name.toLowerCase()) {
+							options += '<a class="dbopt" href="javascript:searchDB(\'' + UIDB[i].name + '\')">' + UIDB[i].name + '</a> ';
+						}
+					}
+				}
 			}
-		    document.getElementById('searchresults').innerHTML = options;
+			document.getElementById('searchresults').innerHTML = options;
 
 		}
 
 		var currentUI = false;
 
 		function deleteFromDB() {
-			if (confirm("Are you sure you want to delete "+pageName+"?")) {
+			if (confirm("Are you sure you want to delete " + pageName + "?")) {
 
 				hideSearchbar()
 
 				if (currentUI) {
 					$.ajax({
-				        url: currentUI.url,
-				        type: 'DELETE',
-				        crossDomain: true,
-		  				dataType: 'json',
-					    contentType: "application/json",
-				        success: function(data) {
-				        	loadDB(setUIDB);
-				        },
-				        error: function(err) {
-				        	console.log(err)
-				        }
-				    });
+						url: currentUI.url,
+						type: 'DELETE',
+						crossDomain: true,
+						dataType: 'json',
+						contentType: "application/json",
+						success: function (data) {
+							loadDB(setUIDB);
+						},
+						error: function (err) {
+							console.log(err)
+						}
+					});
 
 				} else {
 					showSearchbar()
@@ -907,10 +925,12 @@
 			$("#loadsection_loading").show(0)
 			clearSearchbar()
 		}
+
 		function showSearchbar() {
 			$("#loadsection").show(0)
 			$("#loadsection_loading").hide(0)
 		}
+
 		function clearSearchbar() {
 			$("#searchresults").html("");
 			$("#searchdb").val("")
@@ -927,13 +947,13 @@
 			nx.widgets[globaldragid].audioString = callback.toString();
 
 			try {
-				$("#roamingcode .title").css("background-color","#ccc");
-				var cb 
+				$("#roamingcode .title").css("background-color", "#ccc");
+				var cb
 				nx.widgets[globaldragid].audioFunction = new Function("data", callback.toString());
-			} catch(e) {
-				$("#roamingcode .title").css("background-color","#f00");
+			} catch (e) {
+				$("#roamingcode .title").css("background-color", "#f00");
 
-			} 
+			}
 		}
 
 		function saveGlobalAudio() {
@@ -946,14 +966,14 @@
 			//$("#guiglobalaudio").setValue(nx.globalAudioString);
 			globaleditor.setValue(nx.globalAudioString)
 
-		/*	//To focus the ace editor
-		//	var session = globaleditor.getSession();
-			//Get the number of lines
-		//	var count = session.getLength();
-			//Go to end of the last line
-		//	globaleditor.gotoLine(count, session.getLine(count-1).length);
-			*/
-            	
+			/*	//To focus the ace editor
+			//	var session = globaleditor.getSession();
+				//Get the number of lines
+			//	var count = session.getLength();
+				//Go to end of the last line
+			//	globaleditor.gotoLine(count, session.getLine(count-1).length);
+				*/
+
 		}
 
 		var cbleft;
@@ -966,36 +986,38 @@
 			var al = document.getElementById("arrow-left")
 			var ar = document.getElementById("arrow-right")
 			$("#roamingcode").css("top", element.offset.top + "px");
-			if (element.offset.left <= window.innerWidth/2) {
+			if (element.offset.left <= window.innerWidth / 2) {
 				$("#roamingcode").css("left", element.offset.left + element.width + 3 + "px");
-				$("#R").css("right","auto");
-				$("#R").css("left","14px");
+				$("#R").css("right", "auto");
+				$("#R").css("left", "14px");
 				al.style.display = "block";
 				ar.style.display = "none";
 				cbleft = true;
 			} else {
 				$("#roamingcode").css("left", element.offset.left - $("#roamingcode").width() + "px");
-				$("#R").css("right","14px");
-				$("#R").css("left","auto");
+				$("#R").css("right", "14px");
+				$("#R").css("left", "auto");
 				ar.style.display = "block";
 				al.style.display = "none";
 				cbleft = false;
 			}
 
 
-         	$('#roamingcode').show(0)
+			$('#roamingcode').show(0)
 
 			callbackeditor.focus();
 			callbackeditor.setCursor(500)
 
-          
+
 
 			$("#perelement").html(element.canvasID);
 			var dataprops = " &nbsp;&nbsp;";
 			for (var key in element.val) {
-				dataprops += "data."+key+" &nbsp;"
+				dataprops += "data." + key + " &nbsp;"
 			}
-			if (dataprops.length >=100) { dataprops = dataprops.substring(0,100) + " ... "}
+			if (dataprops.length >= 100) {
+				dataprops = dataprops.substring(0, 100) + " ... "
+			}
 			$("#dataprops").html(dataprops);
 
 
@@ -1003,7 +1025,7 @@
 		}
 
 		function hideElementCallbackCode() {
-			$("#roamingcode").css('top','-500px');
+			$("#roamingcode").css('top', '-500px');
 		}
 
 		/* global */
@@ -1013,14 +1035,14 @@
 		}
 
 		function clearGlobalAudio() {
-		//	Gibber.clear();
+			//	Gibber.clear();
 		}
 
 		function renderAudio() {
-		////	nx.globalAudioString = globaleditor.getValue();
+			////	nx.globalAudioString = globaleditor.getValue();
 
 			$.globalEval(nx.globalAudioString);
-		//	Gibber.started = true;
+			//	Gibber.started = true;
 		}
 
 
@@ -1037,7 +1059,7 @@
 			setPageName("Untitled")
 			nx.colors.background = document.body.style.backgroundColor;
 			if (!justloaded) {
-			//	clearGlobalAudio();
+				//	clearGlobalAudio();
 			} else {
 				nx.globalAudioString = defaultglobalaudio;
 			}
@@ -1051,20 +1073,24 @@
 			if (IDEon) {
 				IDEon = false;
 				hideIDE();
-			//	nx.sendsTo("ajax");
+				//	nx.sendsTo("ajax");
 			} else {
 				IDEon = true;
 				showIDE();
-			//	nx.sendsTo("js");
+				//	nx.sendsTo("js");
 			}
 		}
 
 		function showIDE() {
-			$("#codingarea").animate({"bottom": "0px"}, 400);
+			$("#codingarea").animate({
+				"bottom": "0px"
+			}, 400);
 		}
 
 		function hideIDE() {
-			$("#codingarea").animate({"bottom": "-230px"}, 400);
+			$("#codingarea").animate({
+				"bottom": "-230px"
+			}, 400);
 		}
 
 		function setPageName(name) {
@@ -1072,27 +1098,28 @@
 			$("#title").val(name);
 		}
 
-		function makeWidget(title,e) {
-			$("#sidebar").css("opacity",0);
-			$("#codingarea").css("opacity",0);
+		function makeWidget(title, e) {
+			$("#sidebar").css("opacity", 0);
+			$("#codingarea").css("opacity", 0);
 			document.body.style.userSelect = "none";
 			document.body.style.mozUserSelect = "none";
 			document.body.style.webkitUserSelect = "none";
-			createObject(title,e.pageY,e.pageX);
+			createObject(title, e.pageY, e.pageX);
 
 		}
 
 
 		var fullIDE = false;
+
 		function toggleFullIDE() {
 			if (!fullIDE) {
 				$("#codingarea").addClass('fullIDE')
 				fullIDE = true;
-			//	showAllCode();
+				//	showAllCode();
 			} else {
 				$("#codingarea").removeClass('fullIDE')
 				fullIDE = false;
-			//	hideAllCode();
+				//	hideAllCode();
 			}
 		}
 
@@ -1100,17 +1127,17 @@
 			if (!fullIDE) {
 				$("#roamingcode").addClass('fullIDE')
 
-				$("#R").css("left","0px")
-				$("#R").css("right","0px")
+				$("#R").css("left", "0px")
+				$("#R").css("right", "0px")
 				fullIDE = true;
 			} else {
 				$("#roamingcode").removeClass('fullIDE')
 				if (cbleft) {
-					$("#R").css("left","14px")
-					$("#R").css("right","auto");
-				} else {	
-					$("#R").css("left","auto")
-					$("#R").css("right","14px");
+					$("#R").css("left", "14px")
+					$("#R").css("right", "auto");
+				} else {
+					$("#R").css("left", "auto")
+					$("#R").css("right", "14px");
 				}
 				fullIDE = false;
 			}
@@ -1128,10 +1155,10 @@
 
 			var sortedkeys = keys(nx.widgets).sort();
 
-			for (var i=0;i<sortedkeys.length;i++) {
+			for (var i = 0; i < sortedkeys.length; i++) {
 				var key = sortedkeys[i];
 				var id = nx.widgets[key].canvasID
-				allcode += '\n\n\n\n/******** '+id.toUpperCase()+' ********/ \n\n';
+				allcode += '\n\n\n\n/******** ' + id.toUpperCase() + ' ********/ \n\n';
 				allcode += nx.widgets[key].audioString;
 			}
 
@@ -1140,36 +1167,35 @@
 
 		function hideAllCode() {
 			var shortcode = nx.globalAudioString
-			shortcode = shortcode.substring(0,shortcode.indexOf('\n\n\n\n/*******************')-1);
+			shortcode = shortcode.substring(0, shortcode.indexOf('\n\n\n\n/*******************') - 1);
 			nx.globalAudioString = shortcode;
 			globaleditor.setValue(nx.globalAudioString);
 		}
 
 		//sorts keys alphabetically
-		function keys(obj)
-		{
-		    var keys = [];
+		function keys(obj) {
+			var keys = [];
 
-		    for(var key in obj)
-		    {
-		        if(obj.hasOwnProperty(key))
-		        {
-		            keys.push(key);
-		        }
-		    }
+			for (var key in obj) {
+				if (obj.hasOwnProperty(key)) {
+					keys.push(key);
+				}
+			}
 
-		    return keys;
+			return keys;
 		}
 
 		var infowin;
+
 		function infoWindow() {
 			var type = nx.widgets[globaldragid].canvasID;
 			type = type.replace(/[0-9]/g, '');
 			var dw = nx.widgets[globaldragid].defaultSize.width;
 			dw += 600;
 			var dh = nx.widgets[globaldragid].defaultSize.height;
-			dh = nx.clip(dh,250,600)
-			infowin = window.open("infowin.html?"+type, "infowin", "toolbar=no, scrollbars=no, resizable=no, top=0, left=0, width="+dw+", height="+dh);
+			dh = nx.clip(dh, 250, 600)
+			infowin = window.open("infowin.html?" + type, "infowin",
+				"toolbar=no, scrollbars=no, resizable=no, top=0, left=0, width=" + dw + ", height=" + dh);
 			infowin.focus();
 		}
 
@@ -1197,6 +1223,7 @@
 			},
 
 		}
+
 		function setGuide(key) {
 			var guide = devices[key]
 			$("#mobileguide").css("width", guide.width)
@@ -1206,7 +1233,7 @@
 
 
 		function openQR() {
-			qrcode.makeCode("http://www.nexusosc.com/drop/braid/?"+pageName)
+			qrcode.makeCode("http://www.nexusosc.com/drop/braid/?" + pageName)
 			$("#qrtitle").html(pageName);
 			$("#qrcode_overlay").fadeIn(500);
 		}
@@ -1222,95 +1249,93 @@
 
 		function darkMode(on) {
 			if (on) {
-				nx.colorize("background",darkcolors.background)
+				nx.colorize("background", darkcolors.background)
 				document.body.style.backgroundColor = darkcolors.background
 				document.body.style.backgroundImage = "none"
 				document.getElementById("moreoptions").src = "images/play.png"
-				nx.colorize("fill",darkcolors.fill)
-				nx.colorize("border",darkcolors.border)
-				nx.colorize("black",darkcolors.black)
-				nx.colorize("white",darkcolors.white)
+				nx.colorize("fill", darkcolors.fill)
+				nx.colorize("border", darkcolors.border)
+				nx.colorize("black", darkcolors.black)
+				nx.colorize("white", darkcolors.white)
 			} else {
-				nx.colorize("background","#DDDDDD")
+				nx.colorize("background", "#DDDDDD")
 				document.body.style.backgroundColor = "#DDDDDD"
 				document.body.style.backgroundImage = "url('images/gridbg.png')"
 				document.getElementById("moreoptions").src = "images/playblack.png"
-				nx.colorize("fill",lightcolors.fill)
-				nx.colorize("border",lightcolors.border)
-				nx.colorize("black",lightcolors.black)
-				nx.colorize("white",lightcolors.white)
+				nx.colorize("fill", lightcolors.fill)
+				nx.colorize("border", lightcolors.border)
+				nx.colorize("black", lightcolors.black)
+				nx.colorize("white", lightcolors.white)
 			}
 
 
 		}
-		
-
-
-
 	</script>
 </head>
+
 <body>
 	<style>
-
 		body {
-			margin:0px;
-			padding:0px;
-			min-width:2000px;
-			min-height:1500px;
-			background-color:#ddd;
-			background-image:url('images/gridbg.png');
+			margin: 0px;
+			padding: 0px;
+			min-width: 2000px;
+			min-height: 1500px;
+			background-color: #ddd;
+			background-image: url('images/gridbg.png');
 		}
 
 		.butt {
-			text-align:center;
-			width:45%;
-			box-sizing:border-box;
-			padding:10px 10px;
-			margin:20px auto;
-			border:solid 1px #ccc;
-			font-size:12pt;
-			background-color:#ddd;
+			text-align: center;
+			width: 45%;
+			box-sizing: border-box;
+			padding: 10px 10px;
+			margin: 20px auto;
+			border: solid 1px #ccc;
+			font-size: 12pt;
+			background-color: #ddd;
 		}
 
 		.nxbutt {
-			float:left;
-			text-align:center;
-			width:45%;
-			box-sizing:border-box;
-			padding:10px 10px;
-			margin:10px 2%;
-			border:solid 1px #ccc;
-			font-size:12pt;
-			background-color:#ddd;
+			float: left;
+			text-align: center;
+			width: 45%;
+			box-sizing: border-box;
+			padding: 10px 10px;
+			margin: 10px 2%;
+			border: solid 1px #ccc;
+			font-size: 12pt;
+			background-color: #ddd;
 		}
 
-		body, input, button {
-			font-family:helvetica;
+		body,
+		input,
+		button {
+			font-family: helvetica;
 			font-size: 12pt;
-			font-weight:100;
-			user-select:none;
-			-moz-user-select:none;
-			-webkit-user-select:none;
+			font-weight: 100;
+			user-select: none;
+			-moz-user-select: none;
+			-webkit-user-select: none;
 		}
 
 		#addnew {
-			display:none;
-			width:70px;
-			height:40px;
-			float:left;
+			display: none;
+			width: 70px;
+			height: 40px;
+			float: left;
 		}
 
 		.overlay {
-			position:fixed;
-			left:0px;
-			top:0px;
-			width:100%;
-			height:100%;
-			box-sizing:border-box;
-			background-color:#eee;
-			display:none;
-			overflow:auto;
-			z-index:100;
+			position: fixed;
+			left: 0px;
+			top: 0px;
+			width: 100%;
+			height: 100%;
+			box-sizing: border-box;
+			background-color: #eee;
+			display: none;
+			overflow: auto;
+			z-index: 100;
 		}
 
 		/* new */
@@ -1318,184 +1343,194 @@
 		/* ui page */
 
 		#nxui {
-			position:absolute;
-			width:100%;
-			height:100%;
+			position: absolute;
+			width: 100%;
+			height: 100%;
 		}
 
 		/* sidebar */
 
 		#sidebar {
-			position:fixed;
-			top:0px;
-			right:0px;
-			height:205px;
-			background-color:#eee;
-			border-right:solid 1px #ccc;
-			width:449px;
-			z-index:3;
+			position: fixed;
+			top: 0px;
+			right: 0px;
+			height: 205px;
+			background-color: #eee;
+			border-right: solid 1px #ccc;
+			width: 449px;
+			z-index: 3;
 
 		}
 
 		#sidebar input {
-			box-sizing:border-box;
-			outline:solid 0px;
-			border:none;
+			box-sizing: border-box;
+			outline: solid 0px;
+			border: none;
 		}
 
 		#sidebar #titleimg {
-			width:100%;
-			font-size:11px;
-			border:none;
-			font-weight:normal;
-			color:#ccc;
-			padding:5px 10px 2px;
-			letter-spacing:1px;
+			width: 100%;
+			font-size: 11px;
+			border: none;
+			font-weight: normal;
+			color: #ccc;
+			padding: 5px 10px 2px;
+			letter-spacing: 1px;
 		}
 
 		#sidebar #titleimg img {
-			width:15px;
-			opacity:0.7;
+			width: 15px;
+			opacity: 0.7;
 		}
 
 		#sidebar #title {
-			width:30%;
-			font-size:12px;
-			border:none;
-			font-weight:normal;
-			color:#999;
-			padding:3px 6px;
-			letter-spacing:1px;
-			background-color:transparent;
+			width: 30%;
+			font-size: 12px;
+			border: none;
+			font-weight: normal;
+			color: #999;
+			padding: 3px 6px;
+			letter-spacing: 1px;
+			background-color: transparent;
 		}
 
-		#sidebar .header, #codingarea #L .title, #R .title {
-			width:100%;
-			padding:5px 10px;
-			font-size:13px;
-			color:#333;
-			box-sizing:border-box;
-			background-color:#e3e3e3;
+		#sidebar .header,
+		#codingarea #L .title,
+		#R .title {
+			width: 100%;
+			padding: 5px 10px;
+			font-size: 13px;
+			color: #333;
+			box-sizing: border-box;
+			background-color: #e3e3e3;
 		}
 
-		#searchdb:focus, #oscpath:focus {
-			outline:solid 1px #444;
+		#searchdb:focus,
+		#oscpath:focus {
+			outline: solid 1px #444;
 		}
 
-		#searchdb, #oscpath {
-			color:#333;
-			font-size:13px;
-			margin:0px;
-			display:block;
-			box-sizing:border-box;
-			width:100%;
-			background-color:#fff;
-			border-radius:0px;
-			padding:8px;
+		#searchdb,
+		#oscpath {
+			color: #333;
+			font-size: 13px;
+			margin: 0px;
+			display: block;
+			box-sizing: border-box;
+			width: 100%;
+			background-color: #fff;
+			border-radius: 0px;
+			padding: 8px;
 		}
 
 		#elemlist {
-			height:100%;
-			width:100%;
-			overflow:hidden;
-			background-color:#eee;
+			height: 100%;
+			width: 100%;
+			overflow: hidden;
+			background-color: #eee;
 		}
 
 		.nxopt {
-			padding:4px 10px;
-			font-size:14px;
-			color:#444;
-			border:solid 1px #eee;
+			padding: 4px 10px;
+			font-size: 14px;
+			color: #444;
+			border: solid 1px #eee;
 		}
 
 		#footer {
-			position:absolute;
-			bottom:0px;
-			display:block;
-			width:100%;
-			background-color:#f7f7f7;
+			position: absolute;
+			bottom: 0px;
+			display: block;
+			width: 100%;
+			background-color: #f7f7f7;
 		}
 
 		#oscpath {
-			width:120px;
-			float:left;
+			width: 120px;
+			float: left;
 		}
 
-		#elemtrash, #savetodb, #dbtrash, #newpage, #accentcolor {
-			opacity:0.7;
-			margin:5px 0px 0px 5px;
-			cursor:pointer;
-			height:20px;
-			display:block;
-			float:left;
+		#elemtrash,
+		#savetodb,
+		#dbtrash,
+		#newpage,
+		#accentcolor {
+			opacity: 0.7;
+			margin: 5px 0px 0px 5px;
+			cursor: pointer;
+			height: 20px;
+			display: block;
+			float: left;
 		}
 
 		#moreoptions {
-			position:absolute;
-			right:10px;
-			cursor:pointer;
-			height:40px;
-			width:40px;
-			bottom:10px;
+			position: absolute;
+			right: 10px;
+			cursor: pointer;
+			height: 40px;
+			width: 40px;
+			bottom: 10px;
 		}
 
-		#elemtrash, #locked {
-			opacity:0.7;
-			margin-left:5px;
-			cursor:pointer;
-			height:30px;
-			display:none;
+		#elemtrash,
+		#locked {
+			opacity: 0.7;
+			margin-left: 5px;
+			cursor: pointer;
+			height: 30px;
+			display: none;
 		}
 
 		#savetodb {
-			margin-left:10px;
+			margin-left: 10px;
 		}
 
 		#locked {
-			position:absolute;
-			right:170px;
-			bottom:5px;
+			position: absolute;
+			right: 170px;
+			bottom: 5px;
 		}
 
 		.dbopt {
-			font-size:13px;
-			color:#048;
-			margin:2px 0px 2px 10px;
-			line-height:25px;
+			font-size: 13px;
+			color: #048;
+			margin: 2px 0px 2px 10px;
+			line-height: 25px;
 		}
 
-		input {   
-		    -webkit-user-select: text;
-		    -khtml-user-select: text;
-		    -moz-user-select: text;
-		    -ms-user-select: text;
-		    user-select: text;
-		
+		input {
+			-webkit-user-select: text;
+			-khtml-user-select: text;
+			-moz-user-select: text;
+			-ms-user-select: text;
+			user-select: text;
+
 		}
 
 
 		.nxoptimg {
-			width:28px;
-			height:28px;
-			margin:4px 4px 1px 4px;
-			padding:0px;
-			border-radius:3px;
-			border:solid 2px white;
+			width: 28px;
+			height: 28px;
+			margin: 4px 4px 1px 4px;
+			padding: 0px;
+			border-radius: 3px;
+			border: solid 2px white;
 		}
 
 
 		#colorcontrols {
-			padding:3px 10px;
-			background-color:#f3f3f3;
+			padding: 3px 10px;
+			background-color: #f3f3f3;
 		}
+
 		input[type="color"] {
-			width:20px;
-			height:20px;
-			margin:2px 10px;
-			padding:0px !important;
-			left:0px;
-			display:block;
-			float:left;
+			width: 20px;
+			height: 20px;
+			margin: 2px 10px;
+			padding: 0px !important;
+			left: 0px;
+			display: block;
+			float: left;
 		}
 	</style>
 
@@ -1506,10 +1541,10 @@
 
 	<div id="nxui"></div>
 
-	
+
 
 	<div id="sidebar">
-		
+
 		<div id="hidesidebararrow" onclick="toggleSidebar()">&#8677;</div>
 
 		<img src="images/trash.png" onclick="deleteObject()" id="elementtrash">
@@ -1541,28 +1576,30 @@
 				<img src="images/newpage.png" id="newpage" onclick="newPage()" style="margin-left:10px;opacity:0.5" title="New Page">
 				<img src="images/disk.png" id="savetodb" onclick="askToSaveToDB()" title="Save Instrument">
 				<img src="images/trash.png" id="dbtrash" onclick="deleteFromDB()" title="Delete Instrument">
-				
+
 
 
 				<div style="display:block;height:25px;float:left;margin:5px 0px 0px 5px">
-			
+
 					<a href="javascript:openQR()" style="color:#c3c3c3;line-height:23px;font-size:17px;text-decoration:none;font-weight:bold">QR</a>
 
 				</div>
-	
 
-				<select style="height:23px;width:120px;font-size:8pt;border:solid 0px;padding:1px 10px;margin:5px 0px 0px 5px;float:left;display:block" onchange="setGuide(this.value)">
-						<option value="phone_portrait">Phone (Portrait)</option>
+
+				<select style="height:23px;width:120px;font-size:8pt;border:solid 0px;padding:1px 10px;margin:5px 0px 0px 5px;float:left;display:block"
+				    onchange="setGuide(this.value)">
+					<option value="phone_portrait">Phone (Portrait)</option>
 					<!--	<option value="phone_landscape">Phone (Landscape)</option> -->
-						<option value="tablet_portrait">Tablet (Portrait)</option>
+					<option value="tablet_portrait">Tablet (Portrait)</option>
 					<!--	<option value="tablet_landscape">Tablet (Landscape)</option> -->
 				</select>
 				<!-- setGuide -->
 
 
-				<input type="color" value="#00aaff" id="accentcolor" name="accentcolor" oninput="nx.colorize(this.value);nx.colors.accent=this.value" title="Accent Color">
+				<input type="color" value="#00aaff" id="accentcolor" name="accentcolor" oninput="nx.colorize(this.value);nx.colors.accent=this.value"
+				    title="Accent Color">
 
-				<input type="checkbox" onchange="darkMode(this.checked)" style="margin:3px 0px 0px 8px;float:left;display:block;height:25px;width:25px"></input> 
+				<input type="checkbox" onchange="darkMode(this.checked)" style="margin:3px 0px 0px 8px;float:left;display:block;height:25px;width:25px"></input>
 				<div style="font-size:10pt;font-family:gill sans;display:block;float:left;color:#888;margin:3px 0px 0px -3px;line-height:25px;font-weight:normal">Dark Mode</div>
 
 			</div>
@@ -1592,7 +1629,7 @@
 
 
 
-				<img src="images/unlocked.png" id="locked" onclick="perform()">
+			<img src="images/unlocked.png" id="locked" onclick="perform()">
 
 
 		</div>
@@ -1600,9 +1637,9 @@
 
 
 
-			<!-- elements -->
+		<!-- elements -->
 
-	
+
 		<div class="header">
 			Interface
 		</div>
@@ -1618,20 +1655,22 @@
 
 
 				<script>
+					var elembuttons = ["button", "dial", "toggle", "slider", "position", "range", "number", "keyboard", "tilt",
+						"multislider", "multitouch", "envelope", "matrix", "mouse", "typewriter", "string", "colors", "metro",
+						"metroball", "vinyl", "joints", "banner"
+					]
 
-				var elembuttons = [ "button", "dial", "toggle", "slider", "position", "range", "number", "keyboard", "tilt", "multislider", "multitouch", "envelope", "matrix", "mouse", "typewriter", "string", "colors", "metro", "metroball", "vinyl", "joints", "banner" ]
-				                     
 
-				for (var i=0;i<elembuttons.length;i++) {
-					var htmlstr = '<img class="nxoptimg" title="'+elembuttons[i]+'" draggable="false" src="images/'+elembuttons[i]+'.png" onmousedown="makeWidget(this.title,event)">'
-					document.write(htmlstr);
-				}
-				//document.write('<div style="clear:both"></div>');
-
+					for (var i = 0; i < elembuttons.length; i++) {
+						var htmlstr = '<img class="nxoptimg" title="' + elembuttons[i] + '" draggable="false" src="images/' + elembuttons[
+							i] + '.png" onmousedown="makeWidget(this.title,event)">'
+						document.write(htmlstr);
+					}
+					//document.write('<div style="clear:both"></div>');
 				</script>
 
 
-			<!--	<img src="images/trash.png" id="elemtrash" onclick="deleteObject()" style="float:left;margin:10px;width:35px"> -->
+				<!--	<img src="images/trash.png" id="elemtrash" onclick="deleteObject()" style="float:left;margin:10px;width:35px"> -->
 
 
 			</div>
@@ -1688,98 +1727,104 @@
 
 
 
-<script>
-/*var globaleditor = ace.edit("guiglobalaudio");
-globaleditor.setTheme("ace/theme/monokai");
-globaleditor.getSession().setMode("ace/mode/javascript");
-globaleditor.on("change", saveGlobalAudio)
-var callbackeditor = ace.edit("guicallback");
-callbackeditor.setTheme("ace/theme/monokai");
-callbackeditor.getSession().setMode("ace/mode/javascript");
-callbackeditor.on("change", saveCallback)*/
-</script>
+	<script>
+		/*var globaleditor = ace.edit("guiglobalaudio");
+				globaleditor.setTheme("ace/theme/monokai");
+				globaleditor.getSession().setMode("ace/mode/javascript");
+				globaleditor.on("change", saveGlobalAudio)
+				var callbackeditor = ace.edit("guicallback");
+				callbackeditor.setTheme("ace/theme/monokai");
+				callbackeditor.getSession().setMode("ace/mode/javascript");
+				callbackeditor.on("change", saveCallback)*/
+	</script>
 
 
 
-<script>
+	<script>
+		var globaleditor = CodeMirror(document.getElementById('guiglobalaudio'), {
+			value: "function myScript(){return 100;}\n",
+			mode: "javascript",
+			styleActiveLine: "true",
+			lineNumbers: true,
+			theme: 'neo'
+		});
 
-var globaleditor = CodeMirror(document.getElementById('guiglobalaudio'), {
-  value: "function myScript(){return 100;}\n",
-  mode:  "javascript",
-  styleActiveLine: "true",
-  lineNumbers:true,
-  theme: 'neo'
-});
+		var callbackeditor = CodeMirror(document.getElementById('guicallback'), {
+			value: "function myScript(){return 100;}\n",
+			mode: "javascript",
+			styleActiveLine: "true",
+			lineNumbers: "true",
+			theme: 'neo'
+		});
 
-var callbackeditor = CodeMirror(document.getElementById('guicallback'), {
-  value: "function myScript(){return 100;}\n",
-  mode:  "javascript",
-  styleActiveLine: "true",
-  lineNumbers:"true",
-  theme: 'neo'
-});
-
-globaleditor.on('change', saveGlobalAudio)
-callbackeditor.on('change', saveCallback)
-
-
-var sidebarVisible = true;
-
-function toggleSidebar() {
-	if (sidebarVisible) {
-		$("#sidebar").animate({"right": "-450px"},300)
-		$("#codingarea").animate({"right": "-450px"},300)
-		$("#hidesidebararrow").html("&#8676;")
-		sidebarVisible = false;
-	} else {
-		$("#sidebar").animate({"right": "0px"},300)
-		$("#codingarea").animate({"right": "0px"},300)
-		$("#hidesidebararrow").html("&#8677;")
-		sidebarVisible = true;
-	}
-}
-
-</script>
+		globaleditor.on('change', saveGlobalAudio)
+		callbackeditor.on('change', saveCallback)
 
 
-	<style> 
+		var sidebarVisible = true;
 
-		#hidesidebararrow {
-			font-size:40px;
-			color:#aaa;
-			position:absolute;
-			right:460px;
-			top:40px;
-			cursor:pointer;
+		function toggleSidebar() {
+			if (sidebarVisible) {
+				$("#sidebar").animate({
+					"right": "-450px"
+				}, 300)
+				$("#codingarea").animate({
+					"right": "-450px"
+				}, 300)
+				$("#hidesidebararrow").html("&#8676;")
+				sidebarVisible = false;
+			} else {
+				$("#sidebar").animate({
+					"right": "0px"
+				}, 300)
+				$("#codingarea").animate({
+					"right": "0px"
+				}, 300)
+				$("#hidesidebararrow").html("&#8677;")
+				sidebarVisible = true;
+			}
 		}
+	</script>
+
+
+	<style>
+		#hidesidebararrow {
+			font-size: 40px;
+			color: #aaa;
+			position: absolute;
+			right: 460px;
+			top: 40px;
+			cursor: pointer;
+		}
+
 		#hidesidebararrow:hover {
-			color:#888;
+			color: #888;
 		}
 
 		#elementtrash {
-			width:33px;
-			height:33px;
-			position:absolute;
-			right:465px;
-			top:10px;
-			display:block;
-			z-index:100;
-			opacity:0.7;
+			width: 33px;
+			height: 33px;
+			position: absolute;
+			right: 465px;
+			top: 10px;
+			display: block;
+			z-index: 100;
+			opacity: 0.7;
 		}
 
 		#codingarea {
-			position:fixed;
-			margin:0px;
-			padding:0px;
-			top:205px; 
-			right:0px;
-			height:auto;
-			width:450px;
-			display:block;
-			box-sizing:border-box;
-			padding-right:0px;
-			z-index:2;
-			opacity:1;
+			position: fixed;
+			margin: 0px;
+			padding: 0px;
+			top: 205px;
+			right: 0px;
+			height: auto;
+			width: 450px;
+			display: block;
+			box-sizing: border-box;
+			padding-right: 0px;
+			z-index: 2;
+			opacity: 1;
 		}
 
 		.fullIDE {
@@ -1791,42 +1836,42 @@ function toggleSidebar() {
 			margin: 0;
 			padding: 0;
 			opacity: 1 !important;
-			position:fixed !important;
+			position: fixed !important;
 		}
 
 		#codingarea #L {
-			width:100%;
-			height:100%;
-			float:left;
-			background-color:#ddd;
-			position:relative;
-		} 
+			width: 100%;
+			height: 100%;
+			float: left;
+			background-color: #ddd;
+			position: relative;
+		}
 
 		#R {
-			top:0px;
-			left:14px;
-			width:100%;
-			height:100%;
-			background-color:#ddd;
-			position:absolute;
-			border-radius:10px;
-			-webkit-border-radius:10px;
-			-moz-border-radius:10px;
-			overflow:hidden;
+			top: 0px;
+			left: 14px;
+			width: 100%;
+			height: 100%;
+			background-color: #ddd;
+			position: absolute;
+			border-radius: 10px;
+			-webkit-border-radius: 10px;
+			-moz-border-radius: 10px;
+			overflow: hidden;
 		}
 
 		#roamingcode {
-			position:absolute;
-			display:none;
-			top:0px;
-			left:0px;
-			z-index:10;
-			width:430px;
-			height:200px;
-			opacity:0.9;
+			position: absolute;
+			display: none;
+			top: 0px;
+			left: 0px;
+			z-index: 10;
+			width: 430px;
+			height: 200px;
+			opacity: 0.9;
 		}
 
-	/*	#codingarea #L .title, #R .title {
+		/*	#codingarea #L .title, #R .title {
 			color:#333;
 			font-weight:bold;
 			font-size:12px;
@@ -1835,156 +1880,162 @@ function toggleSidebar() {
 		} */
 
 		#codingarea #L .title img:hover {
-			opacity:1 !important;
-		} 
+			opacity: 1 !important;
+		}
 
-		#guicallback, #guiglobalaudio {
-			width:100%;
-			height:90%;
-			outline:none;
-			font-size:10pt;
-			border:none;
+		#guicallback,
+		#guiglobalaudio {
+			width: 100%;
+			height: 90%;
+			outline: none;
+			font-size: 10pt;
+			border: none;
 			/*border-left:solid 1px #ccc;*/
-			background-color:#fff;
-			box-sizing:border-box;
-			padding:0px;
-			font-family:lucida console, courier, sans-serif;
-			font-weight:100;
-			color:#eee;
-			position:absolute;
-		}
-		#guicallback:focus, #guiglobalaudio:focus {
-		/*	outline:solid 1px #444; */
-			background-color:#fff;
+			background-color: #fff;
+			box-sizing: border-box;
+			padding: 0px;
+			font-family: lucida console, courier, sans-serif;
+			font-weight: 100;
+			color: #eee;
+			position: absolute;
 		}
 
-		#updateGlobalAudio, #clearGlobalAudio {
-			position:absolute;
-			bottom:3px;
-			right:70px;
-			background-color:#ddd;
-			color:#333;
-			border:solid 1px #ccc;
-			font-size:9pt;
-			padding:4px 12px;
-			outline:none;
-			cursor:pointer;
-			z-index:50;
+		#guicallback:focus,
+		#guiglobalaudio:focus {
+			/*	outline:solid 1px #444; */
+			background-color: #fff;
 		}
-		 #clearGlobalAudio {
-		 	right:3px;
-		 }
 
-		
-		#updateGlobalAudio:hover, #clearGlobalAudio:hover {
-			background-color:#bbb;
+		#updateGlobalAudio,
+		#clearGlobalAudio {
+			position: absolute;
+			bottom: 3px;
+			right: 70px;
+			background-color: #ddd;
+			color: #333;
+			border: solid 1px #ccc;
+			font-size: 9pt;
+			padding: 4px 12px;
+			outline: none;
+			cursor: pointer;
+			z-index: 50;
+		}
+
+		#clearGlobalAudio {
+			right: 3px;
+		}
+
+
+		#updateGlobalAudio:hover,
+		#clearGlobalAudio:hover {
+			background-color: #bbb;
 		}
 
 		#perelement {
-			color:#000;
+			color: #000;
 		}
 
 		#arrow-left {
-			position:absolute;
-			left:0px;
-			top:20px;
-			width: 0; 
-			height: 0; 
+			position: absolute;
+			left: 0px;
+			top: 20px;
+			width: 0;
+			height: 0;
 			border-top: 15px solid transparent;
-			border-bottom: 15px solid transparent; 
-			border-right:15px solid #fff; 
+			border-bottom: 15px solid transparent;
+			border-right: 15px solid #fff;
 		}
 
 		#arrow-right {
-			display:none;
-			position:absolute;
-			right:0px;
-			top:20px;
-			width: 0; 
-			height: 0; 
+			display: none;
+			position: absolute;
+			right: 0px;
+			top: 20px;
+			width: 0;
+			height: 0;
 			border-top: 16px solid transparent;
-			border-bottom: 16px solid transparent;	
+			border-bottom: 16px solid transparent;
 			border-left: 16px solid #fff;
 		}
 
 		.ace_gutter {
-			width:20px;
+			width: 20px;
 		}
 
 
 
 		#highlight {
-			border:solid 1px #08b;
-			background-color:#0af;
-			opacity:0.2;
-			width:100px;
-			height:100px;
-			position:absolute;
-			z-index:20;
-			display:none;
+			border: solid 1px #08b;
+			background-color: #0af;
+			opacity: 0.2;
+			width: 100px;
+			height: 100px;
+			position: absolute;
+			z-index: 20;
+			display: none;
 		}
-
-		</style>
-
-
-		<div id="highlight"></div>
+	</style>
 
 
-		<div id="qrcode_overlay" onclick="$('#qrcode_overlay').fadeOut(200)" style="display:none;width:100%;height:100%;position:fixed;top:0px;left:0px;background-color:#f7f7f7;z-index:10">
+	<div id="highlight"></div>
 
 
-			<div id="qrcode" style="width:275px;margin:40px auto 20px"></div>
+	<div id="qrcode_overlay" onclick="$('#qrcode_overlay').fadeOut(200)" style="display:none;width:100%;height:100%;position:fixed;top:0px;left:0px;background-color:#f7f7f7;z-index:10">
 
 
-			<div style="font-family:gill sans;color:#888;width:450px;margin:20px auto;font-size:18px;text-align:left;line-height:22px;">http://nexusosc.com/drop/braid?<span style="font-weight:bold" id="qrtitle" ></span></div>
+		<div id="qrcode" style="width:275px;margin:40px auto 20px"></div>
 
 
-			<div style="font-family:gill sans;color:#888;width:450px;margin:20px auto;font-size:18px;text-align:justify;line-height:22px"> 
-				This is a QR Code to your last saved or loaded interface. If you have not recently saved your interface, do so now and generate a new QR code.
-			</div>
-
-			<script>
-				var qrcode = new QRCode(document.getElementById("qrcode"), "http://nexusosc.com/drop/braid/");
-
-
-
- 			//	Gibber.init();
-
-			</script>
-
-
-
+		<div style="font-family:gill sans;color:#888;width:450px;margin:20px auto;font-size:18px;text-align:left;line-height:22px;">http://nexusosc.com/drop/braid?
+			<span style="font-weight:bold" id="qrtitle"></span>
 		</div>
 
 
-		<div id="errorbox" onclick="this.innerHTML='',this.style.padding='0px'"></div>
+		<div style="font-family:gill sans;color:#888;width:450px;margin:20px auto;font-size:18px;text-align:justify;line-height:22px">
+			This is a QR Code to your last saved or loaded interface. If you have not recently saved your interface, do so now and generate
+			a new QR code.
+		</div>
 
-
-		<style>
-
-			#errorbox {
-				position:fixed;
-				bottom:0px;
-				left:0px;
-				background-color:#f44;
-				font-size:10pt;
-				color:white;
-				z-index:100;
-				opacity:1;
-				font-weight:bold;
-				max-width:50%;
-			}
-
-			#errorbox img {
-				position: absolute;
-				right: 5px;
-				top: 5px;
-			}
-
-		</style>
+		<script>
+			var qrcode = new QRCode(document.getElementById("qrcode"), "http://nexusosc.com/drop/braid/");
 
 
 
+			//	Gibber.init();
+		</script>
 
-</body>	
+
+
+	</div>
+
+
+	<div id="errorbox" onclick="this.innerHTML='',this.style.padding='0px'"></div>
+
+
+	<style>
+		#errorbox {
+			position: fixed;
+			bottom: 0px;
+			left: 0px;
+			background-color: #f44;
+			font-size: 10pt;
+			color: white;
+			z-index: 100;
+			opacity: 1;
+			font-weight: bold;
+			max-width: 50%;
+		}
+
+		#errorbox img {
+			position: absolute;
+			right: 5px;
+			top: 5px;
+		}
+	</style>
+
+
+
+
+</body>
+
 </html>
