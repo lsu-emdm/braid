@@ -30,6 +30,10 @@
 
 
 	<script>
+
+		var postString = "http://nexus.cct.lsu.edu:8000/nexus_uis"
+		var getString = "http://nexus.cct.lsu.edu:8000/nexus_uis.json"
+
 		window.AudioContext = window.AudioContext || window.webkitAudioContext;
 		var c = new window.AudioContext();
 
@@ -755,12 +759,13 @@
 
 			jQuery.ajax({
 				type: "POST",
-				url: "http://nexus.cct.lsu.edu:8000/nexus_uis",
+				url: postString,
 				data: mydata,
 				crossDomain: true,
 				dataType: 'json',
 				contentType: "application/json",
 				success: function () {
+					console.log(mydata)
 					loadDB(setUIDB);
 				},
 				failure: function (errorMsg) {
@@ -841,7 +846,7 @@
 
 			$.ajax({
 				type: "GET",
-				url: "http://nexus.cct.lsu.edu:8000/nexus_uis.json",
+				url: getString,
 				crossDomain: true,
 				dataType: 'json',
 				contentType: "application/json",
